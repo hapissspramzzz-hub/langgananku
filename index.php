@@ -48,7 +48,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $stmt->execute([$email]);
             
             if ($stmt->fetch()) {
-                $error_msg = 'Email sudah terdaftar!';
+                $error_msg = 'Email sudah terdaftar! Silakan login.';
             } else {
                 $hash = password_hash($pass, PASSWORD_DEFAULT);
                 $stmt = $pdo->prepare("INSERT INTO users (email, password) VALUES (?, ?)");
@@ -80,8 +80,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     // --- IMPORT JSON ---
     if ($action === 'import_data' && isset($_SESSION['user_id'])) {
         if (isset($_FILES['json_file']) && $_FILES['json_file']['error'] == 0) {
-            $file = $_FILES['json_file']['tmp_name'];
-            $json = file_get_contents($file);
+            $json = file_get_contents($_FILES['json_file']['tmp_name']);
             $data = json_decode($json, true);
 
             if (is_array($data)) {
@@ -93,7 +92,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     
                     foreach ($data as $row) {
                         if (isset($row['name']) && isset($row['price'])) {
-                            $id = uniqid(); // Buat ID baru untuk menghindari duplikasi
+                            $id = uniqid(); 
                             $stmt->execute([
                                 $id, $_SESSION['user_id'], $row['name'], $row['price'], 
                                 $row['cycle'] ?? 'monthly', $row['renewal_date'] ?? null, 
@@ -111,8 +110,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             } else {
                 $error_msg = "Format file JSON tidak valid.";
             }
-        } else {
-            $error_msg = "Pilih file JSON terlebih dahulu.";
         }
     }
 }
@@ -170,20 +167,23 @@ $isRegister = isset($_GET['mode']) && $_GET['mode'] === 'register';
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <script src="https://unpkg.com/@phosphor-icons/web"></script>
 <style>
-/* CSS SAMA SEPERTI SEBELUMNYA (Disingkat untuk ruang) */
+/* ================= CSS ================= */
 * { box-sizing: border-box; margin: 0; padding: 0; }
 :root { --primary: #5a4fcf; --primary-hover: #4a3fbf; --success: #0f9d58; --danger: #ea4335; --warning: #fbbc04; --bg: #f8f9fa; --card: #ffffff; --text-main: #202124; --text-muted: #5f6368; --border: #dadce0; --radius: 16px; --radius-sm: 8px; --shadow: 0 4px 12px rgba(0,0,0,0.05); }
 body { font-family: 'Inter', sans-serif; background-color: var(--bg); color: var(--text-main); padding: 30px 20px; line-height: 1.5; }
 .container { max-width: 1100px; margin: 0 auto; }
+
+/* AUTH */
 #authScreen { display: flex; justify-content: center; align-items: center; height: 80vh; }
 .auth-box { background: #fff; padding: 40px; border-radius: var(--radius); box-shadow: var(--shadow); width: 100%; max-width: 400px; border: 1px solid var(--border); text-align: center; }
-.auth-box h1 { margin-bottom: 20px; }
+.auth-box h1 { margin-bottom: 20px; font-size: 28px; font-weight: 700; }
+.auth-box h1 span { color: var(--primary); }
 .auth-box input { width: 100%; padding: 12px; margin-bottom: 15px; border: 1px solid var(--border); border-radius: var(--radius-sm); outline: none; font-family: inherit; }
 .auth-box button { width: 100%; justify-content: center; margin-top: 10px; }
 .auth-toggle { margin-top: 15px; font-size: 14px; color: var(--primary); text-decoration: none; display: block; }
 .auth-toggle:hover { text-decoration: underline; }
-.error-msg { background: #fef2f2; color: #b91c1c; padding: 10px; border-radius: 8px; margin-bottom: 15px; font-size: 14px; }
-.success-msg { background: #ecfdf5; color: #047857; padding: 10px; border-radius: 8px; margin-bottom: 15px; font-size: 14px; }
+
+/* HEADER */
 header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px; flex-wrap: wrap; gap: 16px; }
 h1 { font-size: 28px; font-weight: 700; }
 h1 span { color: var(--primary); }
@@ -193,17 +193,54 @@ button, .btn { font: inherit; cursor: pointer; border: none; border-radius: var(
 .btn-primary:hover { background: var(--primary-hover); }
 .btn-secondary { background: #fff; color: var(--text-main); border: 1px solid var(--border); }
 .btn-secondary:hover { background: #f1f3f4; }
+
+/* =========================================
+   PERBAIKAN POSISI ABSOLUTE PADA CARD
+   ========================================= */
 .summary { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 20px; margin-bottom: 30px; }
-.card { background: var(--card); border-radius: var(--radius); padding: 24px; border: 1px solid var(--border); box-shadow: var(--shadow); display: flex; flex-direction: column; justify-content: space-between; height: 140px; }
-.card-top { display: flex; justify-content: space-between; align-items: flex-start; }
-.card .label { color: var(--text-muted); font-size: 14px; font-weight: 500; }
-.card-icon { width: 40px; height: 40px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 20px; }
+.card { 
+    background: var(--card); 
+    border-radius: var(--radius); 
+    padding: 24px; 
+    border: 1px solid var(--border); 
+    box-shadow: var(--shadow); 
+    position: relative; /* Wajib relative untuk anak absolute */
+    height: 140px; 
+}
+.card .label { 
+    position: absolute; 
+    top: 24px; 
+    left: 24px; 
+    color: var(--text-muted); 
+    font-size: 14px; 
+    font-weight: 500; 
+}
+.card-icon { 
+    position: absolute; 
+    top: 24px; 
+    right: 24px; 
+    width: 40px; 
+    height: 40px; 
+    border-radius: 50%; 
+    display: flex; 
+    align-items: center; 
+    justify-content: center; 
+    font-size: 20px; 
+}
 .card-icon.primary { background: #eef2ff; color: var(--primary); }
 .card-icon.success { background: #ecfdf5; color: var(--success); }
 .card-icon.info { background: #e0f2fe; color: #0284c7; }
-.card .value { font-size: 28px; font-weight: 700; margin-top: auto; }
+.card .value { 
+    position: absolute; 
+    bottom: 24px; 
+    left: 24px; 
+    font-size: 28px; 
+    font-weight: 700; 
+}
 .card .value.primary { color: var(--primary); }
 .card .value.success { color: var(--success); }
+
+/* TABLE */
 .table-container { background: var(--card); border-radius: var(--radius); border: 1px solid var(--border); box-shadow: var(--shadow); overflow: hidden; }
 .table-header { display: grid; grid-template-columns: 2fr 1fr 1fr 1fr 0.5fr; gap: 16px; padding: 16px 24px; background: #f8f9fa; border-bottom: 1px solid var(--border); font-size: 13px; font-weight: 600; color: var(--text-muted); }
 .list-item { display: grid; grid-template-columns: 2fr 1fr 1fr 1fr 0.5fr; gap: 16px; padding: 16px 24px; border-bottom: 1px solid var(--border); align-items: center; }
@@ -213,11 +250,16 @@ button, .btn { font: inherit; cursor: pointer; border: none; border-radius: var(
 .item-meta { font-size: 13px; color: var(--text-muted); }
 .item-price { font-weight: 700; font-size: 15px; text-align: right; }
 .btn-delete { background: #fef2f2; color: var(--danger); border: none; width: 36px; height: 36px; border-radius: var(--radius-sm); display: flex; align-items: center; justify-content: center; cursor: pointer; margin-left: auto; text-decoration: none; }
+
+/* BADGES */
 .status-badge { display: inline-flex; align-items: center; gap: 6px; padding: 4px 12px; border-radius: 20px; font-size: 12px; font-weight: 600; background: #ecfdf5; color: #047857; }
 .status-badge::before { content: ''; width: 6px; height: 6px; border-radius: 50%; background: #047857; }
 .timer-badge { display: inline-flex; align-items: center; gap: 6px; padding: 4px 12px; border-radius: 20px; font-size: 12px; font-weight: 600; }
+.timer-normal { background: #f1f3f4; color: #5f6368; } /* Warna abu-abu untuk timer lama */
 .timer-warning { background: #fffbeb; color: #b45309; }
 .timer-danger { background: #fef2f2; color: #b91c1c; }
+
+/* MODAL */
 .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.4); backdrop-filter: blur(4px); display: none; align-items: center; justify-content: center; padding: 20px; z-index: 100; }
 .modal-overlay.active { display: flex; }
 .modal { background: #fff; border-radius: var(--radius); padding: 30px; width: 100%; max-width: 480px; }
@@ -227,15 +269,18 @@ button, .btn { font: inherit; cursor: pointer; border: none; border-radius: var(
 .form-group input, .form-group select { width: 100%; padding: 12px 16px; border: 1px solid var(--border); border-radius: var(--radius-sm); outline: none; font-family: inherit; }
 .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
 .modal-actions { display: flex; justify-content: flex-end; gap: 12px; margin-top: 30px; }
+.error-msg { background: #fef2f2; color: #b91c1c; padding: 10px; border-radius: 8px; margin-bottom: 15px; font-size: 14px; }
+.success-msg { background: #ecfdf5; color: #047857; padding: 10px; border-radius: 8px; margin-bottom: 15px; font-size: 14px; }
 </style>
 </head>
 <body>
 
 <?php if (!isset($_SESSION['user_id'])): ?>
+    <!-- LOGIN / REGISTER -->
     <div id="authScreen">
         <div class="auth-box">
             <h1>Langganan<span>Ku</span></h1>
-            <h2 style="margin-bottom: 20px;"><?= $isRegister ? 'Buat Akun Baru' : 'Masuk ke Akun' ?></h2>
+            <p style="margin-bottom: 20px; color: var(--text-muted);">Silakan masuk atau daftar untuk mengelola langganan Anda.</p>
             
             <?php if ($error_msg): ?><div class="error-msg"><?= htmlspecialchars($error_msg) ?></div><?php endif; ?>
 
@@ -243,7 +288,7 @@ button, .btn { font: inherit; cursor: pointer; border: none; border-radius: var(
                 <input type="hidden" name="action" value="<?= $isRegister ? 'register' : 'login' ?>">
                 <input type="email" name="email" placeholder="Email Anda" required>
                 <input type="password" name="password" placeholder="Password (min. 6 karakter)" required>
-                <button type="submit" class="btn-primary"><?= $isRegister ? 'Daftar' : 'Masuk' ?></button>
+                <button type="submit" class="btn-primary"><?= $isRegister ? 'Daftar Akun' : 'Masuk' ?></button>
             </form>
 
             <?php if ($isRegister): ?>
@@ -255,36 +300,36 @@ button, .btn { font: inherit; cursor: pointer; border: none; border-radius: var(
     </div>
 
 <?php else: ?>
+    <!-- DASHBOARD -->
     <div class="container">
         <header>
             <h1>Langganan<span>Ku</span></h1>
             <div class="toolbar">
-                <!-- Tombol Export -->
-                <a href="export.php" class="btn btn-secondary" title="Download data JSON"><i class="ph ph-download-simple"></i> Export</a>
-                <!-- Tombol Import -->
-                <button class="btn btn-secondary" onclick="document.getElementById('modalImport').classList.add('active')" title="Upload file JSON"><i class="ph ph-upload-simple"></i> Import</button>
-                <!-- Tombol Tambah -->
+                <a href="export.php" class="btn btn-secondary"><i class="ph ph-download-simple"></i> Export</a>
+                <button class="btn btn-secondary" onclick="document.getElementById('modalImport').classList.add('active')"><i class="ph ph-upload-simple"></i> Import</button>
                 <button class="btn-primary" onclick="document.getElementById('modalForm').classList.add('active')"><i class="ph ph-plus"></i> Tambah</button>
-                <!-- Tombol Logout -->
                 <a href="index.php?logout=1" class="btn btn-secondary" onclick="return confirm('Yakin ingin logout?')"><i class="ph ph-sign-out"></i> Logout</a>
             </div>
         </header>
 
-        <!-- Notifikasi -->
         <?php if ($success_msg): ?><div class="success-msg"><?= htmlspecialchars($success_msg) ?></div><?php endif; ?>
         <?php if ($error_msg): ?><div class="error-msg"><?= htmlspecialchars($error_msg) ?></div><?php endif; ?>
 
+        <!-- KARTU RINGKASAN (Angka sudah posisi absolute di kiri bawah) -->
         <div class="summary">
             <div class="card">
-                <div class="card-top"><span class="label">Total Bulanan (aktif)</span><div class="card-icon primary"><i class="ph ph-wallet"></i></div></div>
+                <span class="label">Total Bulanan</span>
+                <div class="card-icon primary"><i class="ph ph-wallet"></i></div>
                 <div class="value primary"><?= formatIDR($totalMonthly) ?></div>
             </div>
             <div class="card">
-                <div class="card-top"><span class="label">Total Tahunan (aktif)</span><div class="card-icon success"><i class="ph ph-trend-up"></i></div></div>
+                <span class="label">Total Tahunan</span>
+                <div class="card-icon success"><i class="ph ph-trend-up"></i></div>
                 <div class="value success"><?= formatIDR($totalYearly) ?></div>
             </div>
             <div class="card">
-                <div class="card-top"><span class="label">Langganan Aktif</span><div class="card-icon info"><i class="ph ph-television"></i></div></div>
+                <span class="label">Langganan Aktif</span>
+                <div class="card-icon info"><i class="ph ph-television"></i></div>
                 <div class="value"><?= $activeCount ?></div>
             </div>
         </div>
@@ -299,19 +344,33 @@ button, .btn { font: inherit; cursor: pointer; border: none; border-radius: var(
             </div>
             
             <?php if (empty($subscriptions)): ?>
-                <div style="padding:30px; text-align:center; color:#666;">Belum ada data. Klik "Tambah" atau "Import".</div>
+                <div style="padding:30px; text-align:center; color:#666;">Belum ada data. Klik "Tambah".</div>
             <?php else: ?>
                 <?php foreach ($subscriptions as $s): ?>
                     <?php 
-                    $timerHtml = '<span style="color:#9ca3af;">-</span>';
-                    if ($s['renewal_date']) {
+                    // ==========================================
+                    // LOGIKA TIMER YANG SUDAH DIPERBAIKI
+                    // ==========================================
+                    $timerHtml = '<span style="color:#9ca3af; font-size:13px;">-</span>';
+                    
+                    if (!empty($s['renewal_date'])) {
                         $today = new DateTime(date('Y-m-d'));
                         $target = new DateTime($s['renewal_date']);
-                        $diff = $today->diff($target)->format("%r%a");
-                        if ($diff < 0) $timerHtml = '<span class="timer-badge timer-danger"><i class="ph ph-clock"></i> Terlewat ' . abs($diff) . ' hari</span>';
-                        elseif ($diff == 0) $timerHtml = '<span class="timer-badge timer-danger"><i class="ph ph-clock"></i> Hari ini!</span>';
-                        elseif ($diff <= 7) $timerHtml = '<span class="timer-badge timer-warning"><i class="ph ph-clock"></i> Sisa ' . $diff . ' hari</span>';
+                        // Casting ke int agar perbandingan ( < 0, == 0 ) bekerja sempurna
+                        $diff = (int)$today->diff($target)->format("%r%a");
+
+                        if ($diff < 0) {
+                            $timerHtml = '<span class="timer-badge timer-danger"><i class="ph ph-clock"></i> Terlewat ' . abs($diff) . ' hari</span>';
+                        } elseif ($diff == 0) {
+                            $timerHtml = '<span class="timer-badge timer-danger"><i class="ph ph-clock"></i> Hari ini!</span>';
+                        } elseif ($diff <= 7) {
+                            $timerHtml = '<span class="timer-badge timer-warning"><i class="ph ph-clock"></i> Sisa ' . $diff . ' hari</span>';
+                        } else {
+                            // Tampilkan timer abu-abu jika lebih dari 7 hari
+                            $timerHtml = '<span class="timer-badge timer-normal"><i class="ph ph-clock"></i> ' . $diff . ' hari lagi</span>';
+                        }
                     }
+                    
                     $colors = ['#ef4444', '#3b82f6', '#22c55e', '#f59e0b', '#8b5cf6'];
                     $color = $colors[strlen($s['name']) % 5];
                     ?>
@@ -326,42 +385,31 @@ button, .btn { font: inherit; cursor: pointer; border: none; border-radius: var(
                         <div><span class="status-badge">Aktif</span></div>
                         <div><?= $timerHtml ?></div>
                         <div class="item-price"><?= formatIDR($s['price']) ?></div>
-                        <div>
-                            <a href="index.php?delete_id=<?= $s['id'] ?>" class="btn-delete" onclick="return confirm('Hapus langganan ini?')"><i class="ph ph-trash"></i></a>
-                        </div>
+                        <div><a href="index.php?delete_id=<?= $s['id'] ?>" class="btn-delete" onclick="return confirm('Hapus langganan ini?')"><i class="ph ph-trash"></i></a></div>
                     </div>
                 <?php endforeach; ?>
             <?php endif; ?>
         </div>
     </div>
 
-    <!-- MODAL TAMBAH DATA -->
+    <!-- MODAL TAMBAH -->
     <div class="modal-overlay" id="modalForm">
         <div class="modal">
             <h2>Tambah Langganan</h2>
             <form method="POST">
                 <input type="hidden" name="action" value="add_sub">
-                <div class="form-group"><label>Nama Layanan *</label><input type="text" name="name" required placeholder="Netflix, Spotify"></div>
+                <div class="form-group"><label>Nama Layanan *</label><input type="text" name="name" required placeholder="Netflix"></div>
                 <div class="form-row">
-                    <div class="form-group"><label>Harga (Rp) *</label><input type="number" name="price" required min="0" placeholder="50000"></div>
-                    <div class="form-group">
-                        <label>Siklus *</label>
-                        <select name="cycle">
-                            <option value="monthly">Bulanan</option>
-                            <option value="yearly">Tahunan</option>
-                        </select>
-                    </div>
+                    <div class="form-group"><label>Harga *</label><input type="number" name="price" required min="0" placeholder="50000"></div>
+                    <div class="form-group"><label>Siklus *</label><select name="cycle"><option value="monthly">Bulanan</option><option value="yearly">Tahunan</option></select></div>
                 </div>
                 <div class="form-group"><label>Tanggal Renewal</label><input type="date" name="renewal"></div>
-                <div class="modal-actions">
-                    <button type="button" class="btn-secondary" onclick="document.getElementById('modalForm').classList.remove('active')">Batal</button>
-                    <button type="submit" class="btn-primary">Simpan</button>
-                </div>
+                <div class="modal-actions"><button type="button" class="btn-secondary" onclick="document.getElementById('modalForm').classList.remove('active')">Batal</button><button type="submit" class="btn-primary">Simpan</button></div>
             </form>
         </div>
     </div>
 
-    <!-- MODAL IMPORT DATA -->
+    <!-- MODAL IMPORT -->
     <div class="modal-overlay" id="modalImport">
         <div class="modal">
             <h2>Import Data JSON</h2>
@@ -370,12 +418,8 @@ button, .btn { font: inherit; cursor: pointer; border: none; border-radius: var(
                 <div class="form-group">
                     <label>Pilih file backup (.json) *</label>
                     <input type="file" name="json_file" accept=".json" required style="padding: 10px; border: 1px dashed var(--border); width: 100%;">
-                    <small style="color: var(--text-muted); display: block; margin-top: 8px;">Data akan ditambahkan ke akun Anda saat ini.</small>
                 </div>
-                <div class="modal-actions">
-                    <button type="button" class="btn-secondary" onclick="document.getElementById('modalImport').classList.remove('active')">Batal</button>
-                    <button type="submit" class="btn-primary">Import Sekarang</button>
-                </div>
+                <div class="modal-actions"><button type="button" class="btn-secondary" onclick="document.getElementById('modalImport').classList.remove('active')">Batal</button><button type="submit" class="btn-primary">Import</button></div>
             </form>
         </div>
     </div>
