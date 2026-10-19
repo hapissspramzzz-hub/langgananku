@@ -1,8 +1,8 @@
 <?php
 $host = 'localhost';
-$dbname = 'langgananku'; // Sesuaikan dengan nama database Anda
+$dbname = 'langgananku'; 
 $user = 'root';
-$pass = ''; // Default Laragon kosong
+$pass = ''; 
 
 try {
     $pdo = new PDO("mysql:host=$host;dbname=$dbname;charset=utf8mb4", $user, $pass);

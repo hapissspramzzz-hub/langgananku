@@ -3,9 +3,8 @@ session_start();
 require_once 'db.php';
 
 // ==========================================
-// 1. LOGIKA BACKEND (FULL PHP)
+// 1. LOGIKA BACKEND (LOGIN & CRUD)
 // ==========================================
-
 if (isset($_GET['logout'])) {
     session_destroy();
     header("Location: index.php");
@@ -18,15 +17,13 @@ $success_msg = '';
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $action = $_POST['action'] ?? '';
 
-    // --- LOGIN ---
+    // LOGIN
     if ($action === 'login') {
         $email = filter_var($_POST['email'], FILTER_VALIDATE_EMAIL);
         $pass = $_POST['password'];
-
         $stmt = $pdo->prepare("SELECT id, password FROM users WHERE email = ?");
         $stmt->execute([$email]);
         $user = $stmt->fetch();
-
         if ($user && password_verify($pass, $user['password'])) {
             $_SESSION['user_id'] = $user['id'];
             header("Location: index.php");
@@ -36,24 +33,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
     }
 
-    // --- REGISTER ---
+    // REGISTER
     if ($action === 'register') {
         $email = filter_var($_POST['email'], FILTER_VALIDATE_EMAIL);
         $pass = $_POST['password'];
-
         if (!$email || strlen($pass) < 6) {
             $error_msg = 'Email tidak valid / password minimal 6 karakter';
         } else {
             $stmt = $pdo->prepare("SELECT id FROM users WHERE email = ?");
             $stmt->execute([$email]);
-            
             if ($stmt->fetch()) {
-                $error_msg = 'Email sudah terdaftar! Silakan login.';
+                $error_msg = 'Email sudah terdaftar!';
             } else {
                 $hash = password_hash($pass, PASSWORD_DEFAULT);
                 $stmt = $pdo->prepare("INSERT INTO users (email, password) VALUES (?, ?)");
                 $stmt->execute([$email, $hash]);
-                
                 $_SESSION['user_id'] = $pdo->lastInsertId();
                 header("Location: index.php");
                 exit;
@@ -61,7 +55,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
     }
 
-    // --- TAMBAH LANGGANAN ---
+    // TAMBAH DATA
     if ($action === 'add_sub' && isset($_SESSION['user_id'])) {
         $name = trim($_POST['name']);
         $price = floatval($_POST['price']);
@@ -72,49 +66,39 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         $stmt = $pdo->prepare("INSERT INTO user_subscriptions (id, user_id, name, price, cycle, renewal_date, active, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, 1, ?, ?)");
         $stmt->execute([$id, $_SESSION['user_id'], $name, $price, $cycle, $renewal, $now, $now]);
-        
         header("Location: index.php");
         exit;
     }
 
-    // --- IMPORT JSON ---
+    // IMPORT JSON
     if ($action === 'import_data' && isset($_SESSION['user_id'])) {
         if (isset($_FILES['json_file']) && $_FILES['json_file']['error'] == 0) {
             $json = file_get_contents($_FILES['json_file']['tmp_name']);
             $data = json_decode($json, true);
-
             if (is_array($data)) {
                 $pdo->beginTransaction();
                 try {
                     $stmt = $pdo->prepare("INSERT INTO user_subscriptions (id, user_id, name, price, cycle, renewal_date, active, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)");
                     $now = date('Y-m-d H:i:s');
                     $count = 0;
-                    
                     foreach ($data as $row) {
                         if (isset($row['name']) && isset($row['price'])) {
-                            $id = uniqid(); 
-                            $stmt->execute([
-                                $id, $_SESSION['user_id'], $row['name'], $row['price'], 
-                                $row['cycle'] ?? 'monthly', $row['renewal_date'] ?? null, 
-                                $row['active'] ?? 1, $now, $now
-                            ]);
+                            $stmt->execute([uniqid(), $_SESSION['user_id'], $row['name'], $row['price'], $row['cycle'] ?? 'monthly', $row['renewal_date'] ?? null, $row['active'] ?? 1, $now, $now]);
                             $count++;
                         }
                     }
                     $pdo->commit();
-                    $success_msg = "Berhasil mengimpor $count data langganan!";
+                    $success_msg = "Berhasil mengimpor $count data!";
                 } catch (Exception $e) {
                     $pdo->rollBack();
                     $error_msg = "Gagal import: " . $e->getMessage();
                 }
-            } else {
-                $error_msg = "Format file JSON tidak valid.";
             }
         }
     }
 }
 
-// --- HAPUS DATA ---
+// HAPUS DATA
 if (isset($_GET['delete_id']) && isset($_SESSION['user_id'])) {
     $stmt = $pdo->prepare("DELETE FROM user_subscriptions WHERE id = ? AND user_id = ?");
     $stmt->execute([$_GET['delete_id'], $_SESSION['user_id']]);
@@ -149,10 +133,7 @@ if (isset($_SESSION['user_id'])) {
     }
 }
 
-function formatIDR($number) {
-    return 'Rp ' . number_format($number, 0, ',', '.');
-}
-
+function formatIDR($number) { return 'Rp ' . number_format($number, 0, ',', '.'); }
 $isRegister = isset($_GET['mode']) && $_GET['mode'] === 'register';
 ?>
 
@@ -167,13 +148,13 @@ $isRegister = isset($_GET['mode']) && $_GET['mode'] === 'register';
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <script src="https://unpkg.com/@phosphor-icons/web"></script>
 <style>
-/* ================= CSS ================= */
+/* CSS */
 * { box-sizing: border-box; margin: 0; padding: 0; }
 :root { --primary: #5a4fcf; --primary-hover: #4a3fbf; --success: #0f9d58; --danger: #ea4335; --warning: #fbbc04; --bg: #f8f9fa; --card: #ffffff; --text-main: #202124; --text-muted: #5f6368; --border: #dadce0; --radius: 16px; --radius-sm: 8px; --shadow: 0 4px 12px rgba(0,0,0,0.05); }
 body { font-family: 'Inter', sans-serif; background-color: var(--bg); color: var(--text-main); padding: 30px 20px; line-height: 1.5; }
 .container { max-width: 1100px; margin: 0 auto; }
 
-/* AUTH */
+/* HALAMAN LOGIN */
 #authScreen { display: flex; justify-content: center; align-items: center; height: 80vh; }
 .auth-box { background: #fff; padding: 40px; border-radius: var(--radius); box-shadow: var(--shadow); width: 100%; max-width: 400px; border: 1px solid var(--border); text-align: center; }
 .auth-box h1 { margin-bottom: 20px; font-size: 28px; font-weight: 700; }
@@ -183,7 +164,7 @@ body { font-family: 'Inter', sans-serif; background-color: var(--bg); color: var
 .auth-toggle { margin-top: 15px; font-size: 14px; color: var(--primary); text-decoration: none; display: block; }
 .auth-toggle:hover { text-decoration: underline; }
 
-/* HEADER */
+/* HEADER DASHBOARD */
 header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px; flex-wrap: wrap; gap: 16px; }
 h1 { font-size: 28px; font-weight: 700; }
 h1 span { color: var(--primary); }
@@ -194,53 +175,19 @@ button, .btn { font: inherit; cursor: pointer; border: none; border-radius: var(
 .btn-secondary { background: #fff; color: var(--text-main); border: 1px solid var(--border); }
 .btn-secondary:hover { background: #f1f3f4; }
 
-/* =========================================
-   PERBAIKAN POSISI ABSOLUTE PADA CARD
-   ========================================= */
+/* POSISI ABSOLUTE UNTUK CARD */
 .summary { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 20px; margin-bottom: 30px; }
-.card { 
-    background: var(--card); 
-    border-radius: var(--radius); 
-    padding: 24px; 
-    border: 1px solid var(--border); 
-    box-shadow: var(--shadow); 
-    position: relative; /* Wajib relative untuk anak absolute */
-    height: 140px; 
-}
-.card .label { 
-    position: absolute; 
-    top: 24px; 
-    left: 24px; 
-    color: var(--text-muted); 
-    font-size: 14px; 
-    font-weight: 500; 
-}
-.card-icon { 
-    position: absolute; 
-    top: 24px; 
-    right: 24px; 
-    width: 40px; 
-    height: 40px; 
-    border-radius: 50%; 
-    display: flex; 
-    align-items: center; 
-    justify-content: center; 
-    font-size: 20px; 
-}
+.card { background: var(--card); border-radius: var(--radius); padding: 24px; border: 1px solid var(--border); box-shadow: var(--shadow); position: relative; height: 140px; }
+.card .label { position: absolute; top: 24px; left: 24px; color: var(--text-muted); font-size: 14px; font-weight: 500; }
+.card-icon { position: absolute; top: 24px; right: 24px; width: 40px; height: 40px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 20px; }
 .card-icon.primary { background: #eef2ff; color: var(--primary); }
 .card-icon.success { background: #ecfdf5; color: var(--success); }
 .card-icon.info { background: #e0f2fe; color: #0284c7; }
-.card .value { 
-    position: absolute; 
-    bottom: 24px; 
-    left: 24px; 
-    font-size: 28px; 
-    font-weight: 700; 
-}
+.card .value { position: absolute; bottom: 24px; left: 24px; font-size: 28px; font-weight: 700; }
 .card .value.primary { color: var(--primary); }
 .card .value.success { color: var(--success); }
 
-/* TABLE */
+/* TABEL */
 .table-container { background: var(--card); border-radius: var(--radius); border: 1px solid var(--border); box-shadow: var(--shadow); overflow: hidden; }
 .table-header { display: grid; grid-template-columns: 2fr 1fr 1fr 1fr 0.5fr; gap: 16px; padding: 16px 24px; background: #f8f9fa; border-bottom: 1px solid var(--border); font-size: 13px; font-weight: 600; color: var(--text-muted); }
 .list-item { display: grid; grid-template-columns: 2fr 1fr 1fr 1fr 0.5fr; gap: 16px; padding: 16px 24px; border-bottom: 1px solid var(--border); align-items: center; }
@@ -251,11 +198,11 @@ button, .btn { font: inherit; cursor: pointer; border: none; border-radius: var(
 .item-price { font-weight: 700; font-size: 15px; text-align: right; }
 .btn-delete { background: #fef2f2; color: var(--danger); border: none; width: 36px; height: 36px; border-radius: var(--radius-sm); display: flex; align-items: center; justify-content: center; cursor: pointer; margin-left: auto; text-decoration: none; }
 
-/* BADGES */
+/* BADGES TIMER */
 .status-badge { display: inline-flex; align-items: center; gap: 6px; padding: 4px 12px; border-radius: 20px; font-size: 12px; font-weight: 600; background: #ecfdf5; color: #047857; }
 .status-badge::before { content: ''; width: 6px; height: 6px; border-radius: 50%; background: #047857; }
 .timer-badge { display: inline-flex; align-items: center; gap: 6px; padding: 4px 12px; border-radius: 20px; font-size: 12px; font-weight: 600; }
-.timer-normal { background: #f1f3f4; color: #5f6368; } /* Warna abu-abu untuk timer lama */
+.timer-normal { background: #f1f3f4; color: #5f6368; }
 .timer-warning { background: #fffbeb; color: #b45309; }
 .timer-danger { background: #fef2f2; color: #b91c1c; }
 
@@ -275,22 +222,19 @@ button, .btn { font: inherit; cursor: pointer; border: none; border-radius: var(
 </head>
 <body>
 
+<!-- LOGIKA UTAMA: JIKA BELUM LOGIN, TAMPILKAN FORM -->
 <?php if (!isset($_SESSION['user_id'])): ?>
-    <!-- LOGIN / REGISTER -->
     <div id="authScreen">
         <div class="auth-box">
             <h1>Langganan<span>Ku</span></h1>
-            <p style="margin-bottom: 20px; color: var(--text-muted);">Silakan masuk atau daftar untuk mengelola langganan Anda.</p>
-            
+            <p style="margin-bottom: 20px; color: var(--text-muted);">Silakan masuk atau daftar.</p>
             <?php if ($error_msg): ?><div class="error-msg"><?= htmlspecialchars($error_msg) ?></div><?php endif; ?>
-
             <form method="POST">
                 <input type="hidden" name="action" value="<?= $isRegister ? 'register' : 'login' ?>">
                 <input type="email" name="email" placeholder="Email Anda" required>
                 <input type="password" name="password" placeholder="Password (min. 6 karakter)" required>
                 <button type="submit" class="btn-primary"><?= $isRegister ? 'Daftar Akun' : 'Masuk' ?></button>
             </form>
-
             <?php if ($isRegister): ?>
                 <a href="index.php" class="auth-toggle">Sudah punya akun? Masuk di sini</a>
             <?php else: ?>
@@ -299,8 +243,8 @@ button, .btn { font: inherit; cursor: pointer; border: none; border-radius: var(
         </div>
     </div>
 
+<!-- JIKA SUDAH LOGIN, TAMPILKAN DASHBOARD -->
 <?php else: ?>
-    <!-- DASHBOARD -->
     <div class="container">
         <header>
             <h1>Langganan<span>Ku</span></h1>
@@ -315,7 +259,7 @@ button, .btn { font: inherit; cursor: pointer; border: none; border-radius: var(
         <?php if ($success_msg): ?><div class="success-msg"><?= htmlspecialchars($success_msg) ?></div><?php endif; ?>
         <?php if ($error_msg): ?><div class="error-msg"><?= htmlspecialchars($error_msg) ?></div><?php endif; ?>
 
-        <!-- KARTU RINGKASAN (Angka sudah posisi absolute di kiri bawah) -->
+        <!-- KARTU (ANGKA SUDAH ABSOLUTE) -->
         <div class="summary">
             <div class="card">
                 <span class="label">Total Bulanan</span>
@@ -348,15 +292,11 @@ button, .btn { font: inherit; cursor: pointer; border: none; border-radius: var(
             <?php else: ?>
                 <?php foreach ($subscriptions as $s): ?>
                     <?php 
-                    // ==========================================
-                    // LOGIKA TIMER YANG SUDAH DIPERBAIKI
-                    // ==========================================
+                    // LOGIKA TIMER (MENGGUNAKAN PHP)
                     $timerHtml = '<span style="color:#9ca3af; font-size:13px;">-</span>';
-                    
                     if (!empty($s['renewal_date'])) {
                         $today = new DateTime(date('Y-m-d'));
                         $target = new DateTime($s['renewal_date']);
-                        // Casting ke int agar perbandingan ( < 0, == 0 ) bekerja sempurna
                         $diff = (int)$today->diff($target)->format("%r%a");
 
                         if ($diff < 0) {
@@ -366,7 +306,6 @@ button, .btn { font: inherit; cursor: pointer; border: none; border-radius: var(
                         } elseif ($diff <= 7) {
                             $timerHtml = '<span class="timer-badge timer-warning"><i class="ph ph-clock"></i> Sisa ' . $diff . ' hari</span>';
                         } else {
-                            // Tampilkan timer abu-abu jika lebih dari 7 hari
                             $timerHtml = '<span class="timer-badge timer-normal"><i class="ph ph-clock"></i> ' . $diff . ' hari lagi</span>';
                         }
                     }
