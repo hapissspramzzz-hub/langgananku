@@ -12,11 +12,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $action = $_POST['action'] ?? '';
     if ($action === 'login') {
         $email = filter_var($_POST['email'] ?? '', FILTER_VALIDATE_EMAIL);
-        $pass = $_POST['password'] ?? '';
-        $stmt = $pdo->prepare('SELECT id, password, role FROM users WHERE email = ?');
+        $pass = $_POST['password_hash'] ?? '';
+        $stmt = $pdo->prepare('SELECT id, password_hash, role FROM users WHERE email = ?');
         $stmt->execute([$email]);
         $user = $stmt->fetch();
-        if ($user && password_verify($pass, $user['password'])) {
+        if ($user && password_verify($pass, $user['password_hash'])) {
             session_regenerate_id(true);
             $_SESSION['user_id'] = $user['id'];
             $_SESSION['role'] = $user['role'];
@@ -27,7 +27,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
     if ($action === 'register') {
         $email = filter_var($_POST['email'] ?? '', FILTER_VALIDATE_EMAIL);
-        $pass = $_POST['password'] ?? '';
+        $pass = $_POST['password_hash'] ?? '';
         if (!$email || strlen($pass) < 6) {
             $error_msg = 'Email tidak valid / password minimal 6 karakter';
         } else {
@@ -37,8 +37,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $error_msg = 'Email sudah terdaftar!';
             } else {
                 $hash = password_hash($pass, PASSWORD_DEFAULT);
-                $stmt = $pdo->prepare('INSERT INTO users (email, password) VALUES (?, ?)');
-                $stmt->execute([$email, $hash]);
+                $stmt = $pdo->prepare('INSERT INTO users (email, name, password_hash) VALUES (?, ?, ?)');
+                $stmt->execute([$email, $name, $hash]);
                 session_regenerate_id(true);
                 $_SESSION['user_id'] = $pdo->lastInsertId();
                 $_SESSION['role'] = 'user';
@@ -66,7 +66,7 @@ $isRegister = isset($_GET['mode']) && $_GET['mode'] === 'register';
 <?php if (!isset($_SESSION['user_id'])): ?>
 <div id="authScreen"><div class="auth-box"><h1>Langganan<span>Ku</span></h1><p style="margin-bottom:20px;color:var(--text-muted)">Silakan masuk atau daftar.</p>
 <?php if ($error_msg): ?><div class="error-msg"><?= htmlspecialchars($error_msg, ENT_QUOTES, 'UTF-8') ?></div><?php endif; ?>
-<form method="POST"><input type="hidden" name="action" value="<?= $isRegister ? 'register' : 'login' ?>"><input type="email" name="email" placeholder="Email Anda" required><input type="password" name="password" placeholder="Password (min. 6 karakter)" required><button type="submit" class="btn-primary"><?= $isRegister ? 'Daftar Akun' : 'Masuk' ?></button></form>
+<form method="POST"><input type="hidden" name="action" value="<?= $isRegister ? 'register' : 'login' ?>"><?php if ($isRegister): ?><input type="text" name="name" placeholder="Nama lengkap" required><?php endif; ?><input type="email" name="email" placeholder="Email Anda" required><input type="password" name="password" placeholder="Password (min. 6 karakter)" required><button type="submit" class="btn-primary"><?= $isRegister ? 'Daftar Akun' : 'Masuk' ?></button></form>
 <?php if ($isRegister): ?><a href="index.php" class="auth-toggle">Sudah punya akun? Masuk di sini</a><?php else: ?><a href="index.php?mode=register" class="auth-toggle">Belum punya akun? Daftar di sini</a><?php endif; ?>
 </div></div>
 <?php else: ?>
@@ -79,3 +79,4 @@ $isRegister = isset($_GET['mode']) && $_GET['mode'] === 'register';
 <script src="app.js"></script>
 <?php endif; ?>
 </body></html>
+
