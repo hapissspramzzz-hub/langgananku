@@ -12,7 +12,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $action = $_POST['action'] ?? '';
     if ($action === 'login') {
         $email = filter_var($_POST['email'] ?? '', FILTER_VALIDATE_EMAIL);
-        $pass = $_POST['password_hash'] ?? '';
+        $pass = $_POST['password'] ?? '';
         $stmt = $pdo->prepare('SELECT id, password_hash, role FROM users WHERE email = ?');
         $stmt->execute([$email]);
         $user = $stmt->fetch();
@@ -27,9 +27,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
     if ($action === 'register') {
         $email = filter_var($_POST['email'] ?? '', FILTER_VALIDATE_EMAIL);
-        $pass = $_POST['password_hash'] ?? '';
-        if (!$email || strlen($pass) < 6) {
-            $error_msg = 'Email tidak valid / password minimal 6 karakter';
+        $name = trim($_POST['name'] ?? '');
+        $pass = $_POST['password'] ?? '';
+        if (!$email || $name === '' || strlen($pass) < 6) {
+            $error_msg = 'Nama wajib diisi, email harus valid, dan password minimal 6 karakter';
         } else {
             $stmt = $pdo->prepare('SELECT id FROM users WHERE email = ?');
             $stmt->execute([$email]);
@@ -79,4 +80,5 @@ $isRegister = isset($_GET['mode']) && $_GET['mode'] === 'register';
 <script src="app.js"></script>
 <?php endif; ?>
 </body></html>
+
 
