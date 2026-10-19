@@ -7,7 +7,7 @@ if (!isset($_SESSION['user_id'])) {
     die("Akses ditolak. Silakan login.");
 }
 
-$stmt = $pdo->prepare("SELECT name, price, cycle, renewal_date, active FROM user_subscriptions WHERE user_id = ?");
+$stmt = $pdo->prepare("SELECT name, price, cycle, renewal_date, renewal_time, notes, active FROM user_subscriptions WHERE user_id = ?");
 $stmt->execute([$_SESSION['user_id']]);
 $data = $stmt->fetchAll();
 
