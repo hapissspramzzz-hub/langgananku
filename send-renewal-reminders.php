@@ -107,11 +107,10 @@ foreach ($subscriptions as $subscription) {
         $renewalText = $renewalAt->format('d-m-Y H:i');
         $priceText = 'Rp ' . number_format((float) $subscription['price'], 0, ',', '.');
         $cycle = $cycleNames[$subscription['cycle']] ?? $subscription['cycle'];
-        $subject = 'Pengingat: langganan ' . $subscription['name'] . ' habis dalam 24 jam';
+        $subject = 'Langganan ' . $subscription['name'] . ' Anda tersisa 24 jam lagi';
         $plainText = "Halo {$subscription['account_name']},\n\n"
-            . "Langganan Anda di platform {$subscription['name']} akan habis dalam waktu 24 jam lagi"
-            . " (perkiraan perpanjangan: {$renewalText}).\n"
-            . "Segera perpanjang agar layanan tetap aktif. Harga saat ini: {$priceText} per {$cycle}.\n\n"
+            . "Langganan {$subscription['name']} Anda sudah tersisa 24 jam lagi, segera bayar sebelum basi!!!\n"
+            . "Perkiraan waktu perpanjangan: {$renewalText}. Harga: {$priceText} per {$cycle}.\n\n"
             . "Salam,\nLanggananKu";
 
         $mail = new PHPMailer(true);
@@ -138,9 +137,9 @@ foreach ($subscriptions as $subscription) {
         $mail->Subject = $subject;
         $mail->isHTML(true);
         $mail->Body = '<p>Halo ' . $accountName . ',</p>'
-            . '<p>Langganan Anda di platform <strong>' . $platform . '</strong> akan habis dalam waktu '
-            . '<strong>24 jam lagi</strong> (perkiraan perpanjangan: ' . $renewalText . ').</p>'
-            . '<p>Segera perpanjang agar layanan tetap aktif. Harga saat ini: <strong>'
+            . '<p>Langganan <strong>' . $platform . '</strong> Anda sudah tersisa 24 jam lagi, '
+            . 'segera bayar sebelum basi!!!</p>'
+            . '<p>Perkiraan waktu perpanjangan: ' . $renewalText . '. Harga: <strong>'
             . $priceText . ' per ' . htmlspecialchars($cycle, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8')
             . '</strong>.</p>'
             . '<p>Salam,<br>LanggananKu</p>';

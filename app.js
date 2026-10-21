@@ -41,7 +41,9 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     function remind(item, label, expiry) {
         const key = `langgananku:${item.id}:${item.renewal_date}:${item.renewal_time || '23:59'}:${label}`;
-        const message = `${item.name} akan berakhir dalam ${label} (${expiry.toLocaleString('id-ID')}).`;
+        const message = label === '1 hari'
+            ? `Langganan ${item.name} Anda sudah tersisa 24 jam lagi, segera bayar sebelum basi!!! Harga: ${money(item.price)} per ${(cycleNames[item.cycle] || item.cycle).toLowerCase()}.`
+            : `${item.name} akan berakhir dalam ${label} (${expiry.toLocaleString('id-ID')}).`;
         if (!wasDelivered(`${key}:toast`)) {
             toast(message, 'warning');
             markDelivered(`${key}:toast`);
