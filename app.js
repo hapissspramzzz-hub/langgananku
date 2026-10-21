@@ -103,9 +103,11 @@ document.addEventListener('DOMContentLoaded', () => {
             if (left <= 0) return;
             for (let i = 0; i < thresholds.length; i++) {
                 const threshold = thresholds[i];
+                const nextThreshold = thresholds[i + 1];
                 const inWindow = threshold.label === '1 hari'
                     ? left >= threshold.seconds && left <= threshold.seconds + 30
-                    : left <= threshold.seconds && (!thresholds[i + 1] || left > thresholds[i + 1].seconds);
+                    : left <= threshold.seconds
+                        && (!nextThreshold || left > nextThreshold.seconds + (nextThreshold.label === '1 hari' ? 30 : 0));
                 if (inWindow) {
                     remind(item, threshold.label, expiry); break;
                 }
