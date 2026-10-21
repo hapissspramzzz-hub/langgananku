@@ -86,6 +86,9 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     async function api(action) {
         const response = await fetch(`api.php?action=${encodeURIComponent(action)}`);
+        if (!response.headers.get('content-type')?.includes('application/json')) {
+            throw new Error(`Server mengirim respons non-JSON (HTTP ${response.status}). Periksa endpoint api.php.`);
+        }
         const result = await response.json();
         if (!response.ok || result.error) throw new Error(result.error || 'Permintaan gagal.');
         return result;
