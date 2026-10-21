@@ -66,6 +66,7 @@ button, .btn { font: inherit; cursor: pointer; border: none; border-radius: var(
 .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
 .modal-actions { display: flex; justify-content: flex-end; gap: 12px; margin-top: 30px; }
 .error-msg { background: #fef2f2; color: #b91c1c; padding: 10px; border-radius: 8px; margin-bottom: 15px; font-size: 14px; }
+.success-msg { background: #ecfdf5; color: #047857; padding: 10px; border-radius: 8px; margin-bottom: 15px; font-size: 14px; }
 .page-card { max-width: 680px; margin: 30px auto; padding: 32px; background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); box-shadow: var(--shadow); }
 .page-card h1 { margin-top: 24px; font-size: 24px; }
 .page-description { margin: 8px 0 24px; color: var(--text-muted); }
