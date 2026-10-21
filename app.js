@@ -126,7 +126,7 @@ document.addEventListener('DOMContentLoaded', () => {
         document.getElementById('totalYearly').textContent = money(total * 12);
         document.getElementById('activeCount').textContent = activeCount;
         if (!items.length) {
-            list.innerHTML = '<div class="empty-state">Belum ada langganan. Tekan <strong>Input langganan</strong> untuk mulai mencatat.</div>';
+            list.innerHTML = '<div class="empty-state">Belum ada langganan. Tekan <strong>Tambah langganan</strong> untuk mulai mencatat.</div>';
             return;
         }
         list.innerHTML = items.map(item => {
