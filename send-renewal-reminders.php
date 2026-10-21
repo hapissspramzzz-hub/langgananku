@@ -42,7 +42,8 @@ if (!$dryRun) {
 }
 
 $now = new DateTimeImmutable('now');
-$cutoff = $now->modify('+24 hours');
+$earliestRenewal = $now->modify('+24 hours');
+$latestRenewal = $earliestRenewal->modify('+5 minutes');
 $dueQuery = $pdo->prepare(
     "SELECT s.id, s.name, s.price, s.cycle,
             TIMESTAMP(s.renewal_date, COALESCE(s.renewal_time, '23:59:59')) AS renewal_at,
@@ -55,11 +56,17 @@ $dueQuery = $pdo->prepare(
       AND TIMESTAMP(s.renewal_date, COALESCE(s.renewal_time, '23:59:59')) <= ?
     ORDER BY renewal_at ASC"
 );
-$dueQuery->execute([$now->format('Y-m-d H:i:s'), $cutoff->format('Y-m-d H:i:s')]);
+$dueQuery->execute([
+    $earliestRenewal->format('Y-m-d H:i:s'),
+    $latestRenewal->format('Y-m-d H:i:s'),
+]);
 $subscriptions = $dueQuery->fetchAll();
 
 if ($dryRun) {
-    printf("Mode uji: %d langganan akan menerima pengingat dalam rentang 24 jam.\n", count($subscriptions));
+    printf(
+        "Mode uji: %d langganan akan menerima pengingat setidaknya 24 jam sebelum perpanjangan.\n",
+        count($subscriptions)
+    );
     exit(0);
 }
 
