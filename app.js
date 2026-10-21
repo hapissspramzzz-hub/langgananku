@@ -9,6 +9,9 @@ document.addEventListener('DOMContentLoaded', () => {
         { seconds: 3600, label: '1 jam' }, { seconds: 1800, label: '30 menit' },
         { seconds: 600, label: '10 menit' }
     ];
+    const deliveredReminders = new Set();
+    const failedNotifications = new Set();
+    const notificationButton = document.getElementById('enableNotifications');
     const money = value => new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(Number(value) || 0);
     const esc = value => String(value ?? '').replace(/[&<>"']/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[ch]));
     const monthly = (price, cycle) => ({ weekly: price * 52 / 12, monthly: price, quarterly: price / 3, yearly: price / 12 }[cycle] ?? price);
@@ -38,10 +41,60 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     function remind(item, label, expiry) {
         const key = `langgananku:${item.id}:${item.renewal_date}:${item.renewal_time || '23:59'}:${label}`;
-        try { if (localStorage.getItem(key)) return; localStorage.setItem(key, '1'); } catch (_) { /* Storage may be disabled. */ }
         const message = `${item.name} akan berakhir dalam ${label} (${expiry.toLocaleString('id-ID')}).`;
-        if ('Notification' in window && Notification.permission === 'granted') new Notification('Pengingat LanggananKu', { body: message, tag: key });
-        toast(message, 'warning');
+        if (!wasDelivered(`${key}:toast`)) {
+            toast(message, 'warning');
+            markDelivered(`${key}:toast`);
+        }
+        if (!('Notification' in window) || Notification.permission !== 'granted'
+            || failedNotifications.has(key) || wasDelivered(`${key}:notification`)) return;
+
+        try {
+            new Notification('Pengingat LanggananKu', { body: message, tag: key });
+            markDelivered(`${key}:notification`);
+        } catch (error) {
+            if (!failedNotifications.has(key)) {
+                failedNotifications.add(key);
+                console.error('Notifikasi browser gagal ditampilkan.', error);
+                toast('Pengingat tampil di halaman, tetapi notifikasi browser gagal ditampilkan.', 'error');
+            }
+        }
+    }
+    function wasDelivered(key) {
+        if (deliveredReminders.has(key)) return true;
+        try {
+            if (localStorage.getItem(key) === '1') {
+                deliveredReminders.add(key);
+                return true;
+            }
+        } catch (error) {
+            console.warn('Penyimpanan pengingat tidak tersedia; pengingat hanya berlaku selama halaman terbuka.', error);
+        }
+        return false;
+    }
+    function markDelivered(key) {
+        deliveredReminders.add(key);
+        try {
+            localStorage.setItem(key, '1');
+        } catch (error) {
+            console.warn('Pengingat tidak dapat disimpan antar sesi; pengingat hanya berlaku selama halaman terbuka.', error);
+        }
+    }
+    function updateNotificationButton() {
+        if (!notificationButton) return;
+        if (!('Notification' in window)) {
+            notificationButton.innerHTML = '<i class="ph ph-bell-slash"></i> Notifikasi tidak tersedia';
+            notificationButton.title = 'Browser ini tidak mendukung notifikasi sistem.';
+        } else if (Notification.permission === 'granted') {
+            notificationButton.innerHTML = '<i class="ph ph-bell-ringing"></i> Notifikasi aktif';
+            notificationButton.title = 'Notifikasi browser aktif selama dashboard terbuka.';
+        } else if (Notification.permission === 'denied') {
+            notificationButton.innerHTML = '<i class="ph ph-bell-slash"></i> Notifikasi diblokir';
+            notificationButton.title = 'Izinkan notifikasi untuk situs ini melalui pengaturan browser.';
+        } else {
+            notificationButton.innerHTML = '<i class="ph ph-bell"></i> Aktifkan notifikasi';
+            notificationButton.title = 'Izinkan notifikasi browser untuk pengingat langganan.';
+        }
     }
     function checkReminders(items) {
         items.filter(item => Number(item.active) === 1).forEach(item => {
@@ -98,13 +151,39 @@ document.addEventListener('DOMContentLoaded', () => {
         try { const result = await api('list'); subscriptions = result.items || []; render(subscriptions); checkReminders(subscriptions); }
         catch (error) { toast(error.message, 'error'); }
     }
-    document.getElementById('enableNotifications').addEventListener('click', async event => {
-        if (!('Notification' in window)) { toast('Browser ini tidak mendukung notifikasi sistem. Pengingat tetap tampil di halaman.', 'error'); return; }
-        const permission = await Notification.requestPermission();
-        event.currentTarget.innerHTML = permission === 'granted' ? '<i class="ph ph-bell-ringing"></i> Notifikasi aktif' : '<i class="ph ph-bell-slash"></i> Notifikasi diblokir';
-        toast(permission === 'granted' ? 'Notifikasi browser aktif.' : 'Izinkan notifikasi melalui pengaturan situs di browser.', permission === 'granted' ? 'success' : 'error');
-        if (permission === 'granted') checkReminders(subscriptions);
+    notificationButton.addEventListener('click', async () => {
+        if (!('Notification' in window)) {
+            toast('Browser ini tidak mendukung notifikasi sistem. Pengingat tetap tampil di halaman.', 'error');
+            updateNotificationButton();
+            return;
+        }
+        if (!window.isSecureContext) {
+            toast('Notifikasi perlu dibuka melalui localhost atau HTTPS.', 'error');
+            return;
+        }
+        try {
+            const permission = Notification.permission === 'default'
+                ? await Notification.requestPermission()
+                : Notification.permission;
+            updateNotificationButton();
+            if (permission !== 'granted') {
+                toast('Notifikasi diblokir. Izinkan notifikasi untuk situs ini melalui pengaturan browser.', 'error');
+                return;
+            }
+
+            new Notification('LanggananKu', {
+                body: 'Notifikasi aktif. Pengingat akan muncul saat waktu perpanjangan mendekat.',
+                tag: 'langgananku:notification-test'
+            });
+            toast('Notifikasi browser aktif.', 'success');
+            checkReminders(subscriptions);
+        } catch (error) {
+            updateNotificationButton();
+            console.error('Permintaan izin atau notifikasi browser gagal.', error);
+            toast('Notifikasi gagal diaktifkan. Periksa izin notifikasi di pengaturan browser.', 'error');
+        }
     });
+    updateNotificationButton();
     loadData();
     window.setInterval(() => { updateCountdowns(); checkReminders(subscriptions); }, 15000);
     window.setInterval(loadData, 60000);
