@@ -102,8 +102,12 @@ document.addEventListener('DOMContentLoaded', () => {
             const left = Math.floor((expiry.getTime() - Date.now()) / 1000);
             if (left <= 0) return;
             for (let i = 0; i < thresholds.length; i++) {
-                if (left <= thresholds[i].seconds && (!thresholds[i + 1] || left > thresholds[i + 1].seconds)) {
-                    remind(item, thresholds[i].label, expiry); break;
+                const threshold = thresholds[i];
+                const inWindow = threshold.label === '1 hari'
+                    ? left >= threshold.seconds && left <= threshold.seconds + 30
+                    : left <= threshold.seconds && (!thresholds[i + 1] || left > thresholds[i + 1].seconds);
+                if (inWindow) {
+                    remind(item, threshold.label, expiry); break;
                 }
             }
         });
