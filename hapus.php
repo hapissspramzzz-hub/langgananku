@@ -16,7 +16,8 @@ function h($value)
     return htmlspecialchars((string) $value, ENT_QUOTES, 'UTF-8');
 }
 
-$id = trim((string) ($_GET['id'] ?? $_POST['id'] ?? ''));
+$rawId = $_GET['id'] ?? $_POST['id'] ?? '';
+$id = is_string($rawId) ? trim($rawId) : '';
 $stmt = $pdo->prepare('SELECT id, name FROM user_subscriptions WHERE id = ? AND user_id = ?');
 $stmt->execute([$id, (int) $_SESSION['user_id']]);
 $subscription = $stmt->fetch();
@@ -28,7 +29,8 @@ if (!$subscription) {
 
 $error = '';
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    if (!hash_equals($_SESSION['csrf_token'], $_POST['csrf_token'] ?? '')) {
+    $csrfToken = $_POST['csrf_token'] ?? '';
+    if (!is_string($csrfToken) || !hash_equals($_SESSION['csrf_token'], $csrfToken)) {
         $error = 'Sesi keamanan tidak valid. Muat ulang halaman lalu coba lagi.';
     } else {
         $stmt = $pdo->prepare('DELETE FROM user_subscriptions WHERE id = ? AND user_id = ?');

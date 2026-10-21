@@ -33,11 +33,16 @@ $values = [
 $error = '';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    if (!hash_equals($_SESSION['csrf_token'], $_POST['csrf_token'] ?? '')) {
+    $csrfToken = $_POST['csrf_token'] ?? '';
+    if (!is_string($csrfToken) || !hash_equals($_SESSION['csrf_token'], $csrfToken)) {
         $error = 'Sesi keamanan tidak valid. Muat ulang halaman lalu coba lagi.';
     } else {
         foreach ($values as $key => $value) {
-            $values[$key] = trim((string) ($_POST[$key] ?? $value));
+            if (!isset($_POST[$key]) || !is_string($_POST[$key])) {
+                $error = 'Data yang dikirim tidak valid.';
+                break;
+            }
+            $values[$key] = trim($_POST[$key]);
         }
 
         $price = filter_var($values['price'], FILTER_VALIDATE_FLOAT);
@@ -49,13 +54,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             && (int) substr($time, 0, 2) <= 23
             && (int) substr($time, 3, 2) <= 59;
 
-        if ($values['name'] === '' || mb_strlen($values['name']) > 120
+        if ($error === '' && ($values['name'] === '' || mb_strlen($values['name']) > 120
             || $price === false || $price < 0
             || !isset($cycles[$values['cycle']])
             || !$dateValid || !$timeValid
-            || mb_strlen($values['notes']) > 500) {
+            || mb_strlen($values['notes']) > 500)) {
             $error = 'Periksa kembali nama, harga, siklus, tanggal, waktu, dan catatan.';
-        } else {
+        } elseif ($error === '') {
             $id = sprintf(
                 '%04x%04x-%04x-4%03x-%04x-%04x%04x%04x',
                 random_int(0, 0xffff),

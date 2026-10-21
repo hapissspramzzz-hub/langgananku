@@ -12,12 +12,14 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     exit;
 }
 
-if (empty($_SESSION['csrf_token']) || !hash_equals($_SESSION['csrf_token'], $_POST['csrf_token'] ?? '')) {
+$csrfToken = $_POST['csrf_token'] ?? '';
+if (empty($_SESSION['csrf_token']) || !is_string($csrfToken) || !hash_equals($_SESSION['csrf_token'], $csrfToken)) {
     http_response_code(419);
     exit('Sesi keamanan tidak valid. Muat ulang halaman lalu coba lagi.');
 }
 
-$id = trim((string) ($_POST['id'] ?? ''));
+$rawId = $_POST['id'] ?? '';
+$id = is_string($rawId) ? trim($rawId) : '';
 $stmt = $pdo->prepare(
     'UPDATE user_subscriptions
     SET active = IF(active = 1, 0, 1), updated_at = NOW()

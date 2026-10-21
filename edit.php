@@ -22,7 +22,8 @@ $cycles = [
     'quarterly' => 'Per 3 bulan',
     'yearly' => 'Tahunan',
 ];
-$id = trim((string) ($_GET['id'] ?? $_POST['id'] ?? ''));
+$rawId = $_GET['id'] ?? $_POST['id'] ?? '';
+$id = is_string($rawId) ? trim($rawId) : '';
 $stmt = $pdo->prepare('SELECT * FROM user_subscriptions WHERE id = ? AND user_id = ?');
 $stmt->execute([$id, (int) $_SESSION['user_id']]);
 $subscription = $stmt->fetch();
@@ -43,11 +44,16 @@ $values = [
 $error = '';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    if (!hash_equals($_SESSION['csrf_token'], $_POST['csrf_token'] ?? '')) {
+    $csrfToken = $_POST['csrf_token'] ?? '';
+    if (!is_string($csrfToken) || !hash_equals($_SESSION['csrf_token'], $csrfToken)) {
         $error = 'Sesi keamanan tidak valid. Muat ulang halaman lalu coba lagi.';
     } else {
         foreach ($values as $key => $value) {
-            $values[$key] = trim((string) ($_POST[$key] ?? $value));
+            if (!isset($_POST[$key]) || !is_string($_POST[$key])) {
+                $error = 'Data yang dikirim tidak valid.';
+                break;
+            }
+            $values[$key] = trim($_POST[$key]);
         }
 
         $price = filter_var($values['price'], FILTER_VALIDATE_FLOAT);
@@ -59,13 +65,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             && (int) substr($time, 0, 2) <= 23
             && (int) substr($time, 3, 2) <= 59;
 
-        if ($values['name'] === '' || mb_strlen($values['name']) > 120
+        if ($error === '' && ($values['name'] === '' || mb_strlen($values['name']) > 120
             || $price === false || $price < 0
             || !isset($cycles[$values['cycle']])
             || !$dateValid || !$timeValid
-            || mb_strlen($values['notes']) > 500) {
+            || mb_strlen($values['notes']) > 500)) {
             $error = 'Periksa kembali nama, harga, siklus, tanggal, waktu, dan catatan.';
-        } else {
+        } elseif ($error === '') {
             $stmt = $pdo->prepare(
                 'UPDATE user_subscriptions
                 SET name = ?, price = ?, cycle = ?, renewal_date = ?, renewal_time = ?, notes = ?, updated_at = NOW()
