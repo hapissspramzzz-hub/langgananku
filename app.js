@@ -1,9 +1,6 @@
 document.addEventListener('DOMContentLoaded', () => {
     const list = document.getElementById('list');
     if (!list) return;
-    const token = document.querySelector('meta[name="csrf-token"]')?.content || '';
-    const form = document.getElementById('formSubscription');
-    const modal = document.getElementById('modalForm');
     const toastRoot = document.getElementById('toastRoot');
     const cycleNames = { weekly: 'Mingguan', monthly: 'Bulanan', quarterly: 'Per 3 bulan', yearly: 'Tahunan' };
     const thresholds = [
@@ -83,14 +80,12 @@ document.addEventListener('DOMContentLoaded', () => {
               <div><span class="status-badge ${active ? '' : 'status-paused'}">${active ? 'Aktif' : 'Dijeda'}</span></div>
               <div><span class="timer-badge ${tone}" ${expiry ? `data-expiry="${expiry.getTime()}"` : ''}>${expiry ? esc(remainingText(expiry)) : 'Atur tanggal renewal'}</span><div class="item-meta">${esc(when)}</div></div>
               <div class="item-price">${money(item.price)}<div class="item-meta">per ${esc((cycleNames[item.cycle] || item.cycle).toLowerCase())}</div></div>
-              <div class="item-actions"><button type="button" class="btn-icon" data-action="toggle" data-id="${esc(item.id)}" title="${active ? 'Jeda langganan' : 'Aktifkan langganan'}"><i class="ph ${active ? 'ph-pause' : 'ph-play'}"></i></button><button type="button" class="btn-icon btn-delete" data-action="delete" data-id="${esc(item.id)}" title="Hapus langganan"><i class="ph ph-trash"></i></button></div>
+              <div class="item-actions"><form method="post" action="status.php"><input type="hidden" name="csrf_token" value="${esc(document.querySelector('meta[name="csrf-token"]')?.content || '')}"><input type="hidden" name="id" value="${esc(item.id)}"><button type="submit" class="btn-icon" title="${active ? 'Jeda langganan' : 'Aktifkan langganan'}"><i class="ph ${active ? 'ph-pause' : 'ph-play'}"></i></button></form><a class="btn-icon" href="edit.php?id=${encodeURIComponent(item.id)}" title="Edit langganan"><i class="ph ph-pencil-simple"></i></a><a class="btn-icon btn-delete" href="hapus.php?id=${encodeURIComponent(item.id)}" title="Hapus langganan"><i class="ph ph-trash"></i></a></div>
             </article>`;
         }).join('');
     }
-    async function api(action, payload) {
-        const options = { headers: { 'X-CSRF-Token': token } };
-        if (payload) { options.method = 'POST'; options.headers['Content-Type'] = 'application/json'; options.body = JSON.stringify(payload); }
-        const response = await fetch(`api.php?action=${encodeURIComponent(action)}`, options);
+    async function api(action) {
+        const response = await fetch(`api.php?action=${encodeURIComponent(action)}`);
         const result = await response.json();
         if (!response.ok || result.error) throw new Error(result.error || 'Permintaan gagal.');
         return result;
@@ -100,27 +95,6 @@ document.addEventListener('DOMContentLoaded', () => {
         try { const result = await api('list'); subscriptions = result.items || []; render(subscriptions); checkReminders(subscriptions); }
         catch (error) { toast(error.message, 'error'); }
     }
-    document.getElementById('openForm').addEventListener('click', () => modal.classList.add('active'));
-    modal.querySelectorAll('[data-close-modal]').forEach(button => button.addEventListener('click', () => modal.classList.remove('active')));
-    modal.addEventListener('click', event => { if (event.target === modal) modal.classList.remove('active'); });
-    document.addEventListener('keydown', event => { if (event.key === 'Escape') modal.classList.remove('active'); });
-    form.addEventListener('submit', async event => {
-        event.preventDefault(); const submit = form.querySelector('[type="submit"]'); submit.disabled = true;
-        try {
-            await api('add', { name: document.getElementById('subName').value.trim(), price: document.getElementById('subPrice').value, cycle: document.getElementById('subCycle').value, renewalDate: document.getElementById('subRenewal').value, renewalTime: document.getElementById('subTime').value, notes: document.getElementById('subNotes').value.trim() });
-            form.reset(); document.getElementById('subTime').value = '09:00'; modal.classList.remove('active'); toast('Langganan berhasil ditambahkan.', 'success'); await loadData();
-        } catch (error) { toast(error.message, 'error'); }
-        finally { submit.disabled = false; }
-    });
-    list.addEventListener('click', async event => {
-        const button = event.target.closest('button[data-action]'); if (!button) return;
-        if (button.dataset.action === 'delete' && !confirm('Hapus langganan ini?')) return;
-        try {
-            await api(button.dataset.action, { id: button.dataset.id });
-            toast(button.dataset.action === 'delete' ? 'Langganan berhasil dihapus.' : 'Status langganan berhasil diperbarui.', 'success');
-            await loadData();
-        } catch (error) { toast(error.message, 'error'); }
-    });
     document.getElementById('enableNotifications').addEventListener('click', async event => {
         if (!('Notification' in window)) { toast('Browser ini tidak mendukung notifikasi sistem. Pengingat tetap tampil di halaman.', 'error'); return; }
         const permission = await Notification.requestPermission();
