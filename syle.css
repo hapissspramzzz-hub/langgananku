@@ -83,3 +83,8 @@ button, .btn { font: inherit; cursor: pointer; border: none; border-radius: var(
 /* Ratakan judul dan nominal Harga di tengah kolomnya */
 .table-header > span:nth-child(4),
 .item-price { text-align: center; }
+
+@media (min-width: 601px) {
+  .table-header,
+  .list-item { padding-left: 12px; }
+}
