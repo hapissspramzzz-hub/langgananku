@@ -3,6 +3,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (!list) return;
     const toastRoot = document.getElementById('toastRoot');
     const cycleNames = { weekly: 'Mingguan', monthly: 'Bulanan', quarterly: 'Per 3 bulan', yearly: 'Tahunan' };
+    const cyclePeriods = { weekly: 'minggu', monthly: 'bulan', quarterly: '3 bulan', yearly: 'tahun' };
     const thresholds = [
         { seconds: 604800, label: '7 hari' }, { seconds: 432000, label: '5 hari' },
         { seconds: 172800, label: '2 hari' }, { seconds: 86400, label: '1 hari' },
@@ -42,7 +43,7 @@ document.addEventListener('DOMContentLoaded', () => {
     function remind(item, label, expiry) {
         const key = `langgananku:${item.id}:${item.renewal_date}:${item.renewal_time || '23:59'}:${label}`;
         const message = label === '1 hari'
-            ? `Langganan ${item.name} Anda sudah tersisa 24 jam lagi, segera bayar sebelum basi!!! Harga: ${money(item.price)} per ${(cycleNames[item.cycle] || item.cycle).toLowerCase()}.`
+            ? `Langganan ${item.name} Anda sudah tersisa 24 jam lagi, segera bayar sebelum basi!!! Harga: ${money(item.price)} per ${cyclePeriods[item.cycle] || item.cycle}.`
             : `${item.name} akan berakhir dalam ${label} (${expiry.toLocaleString('id-ID')}).`;
         if (!wasDelivered(`${key}:toast`)) {
             toast(message, 'warning');
