@@ -45,6 +45,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $values[$key] = trim($_POST[$key]);
         }
 
+        $priceFormatIsValid = preg_match('/^(?:\d+|\d{1,3}(?:\.\d{3})+)(?:,\d{1,2})?$/', $values['price']) === 1;
         $priceInput = str_replace(',', '.', str_replace('.', '', $values['price']));
         $price = filter_var($priceInput, FILTER_VALIDATE_FLOAT);
         $date = $values['renewal_date'];
@@ -56,7 +57,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             && (int) substr($time, 3, 2) <= 59;
 
         if ($error === '' && ($values['name'] === '' || mb_strlen($values['name']) > 120
-            || $price === false || $price < 0
+            || !$priceFormatIsValid || $price === false || $price < 0
             || !isset($cycles[$values['cycle']])
             || !$dateValid || !$timeValid
             || mb_strlen($values['notes']) > 500)) {
