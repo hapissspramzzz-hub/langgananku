@@ -64,6 +64,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $priceFormatIsValid = preg_match('/^(?:\d+|\d{1,3}(?:\.\d{3})+)(?:,\d{1,2})?$/', $values['price']) === 1;
         $priceInput = str_replace(',', '.', str_replace('.', '', $values['price']));
         $price = filter_var($priceInput, FILTER_VALIDATE_FLOAT);
+        $priceIsWithinDatabaseRange = $price !== false && is_finite((float) $price)
+            && (float) $price <= 9999999999.99;
         $date = $values['renewal_date'];
         $time = $values['renewal_time'];
         $dateValid = preg_match('/^\d{4}-\d{2}-\d{2}$/', $date)
@@ -72,7 +74,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             && (int) substr($time, 0, 2) <= 23
             && (int) substr($time, 3, 2) <= 59;
 
-        if ($error === '' && ($values['name'] === '' || mb_strlen($values['name']) > 120
+        if ($error === '' && !$priceIsWithinDatabaseRange) {
+            $error = 'Harga maksimal Rp 9.999.999.999,99.';
+        } elseif ($error === '' && ($values['name'] === '' || mb_strlen($values['name']) > 120
             || !$priceFormatIsValid || $price === false || $price < 0
             || !isset($cycles[$values['cycle']])
             || !$dateValid || !$timeValid
@@ -84,18 +88,23 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 SET name = ?, price = ?, cycle = ?, renewal_date = ?, renewal_time = ?, notes = ?, updated_at = NOW()
                 WHERE id = ? AND user_id = ?'
             );
-            $stmt->execute([
-                $values['name'],
-                $price,
-                $values['cycle'],
-                $date,
-                $time . ':00',
-                $values['notes'] !== '' ? $values['notes'] : null,
-                $id,
-                (int) $_SESSION['user_id'],
-            ]);
-            header('Location: index.php');
-            exit;
+            try {
+                $stmt->execute([
+                    $values['name'],
+                    $price,
+                    $values['cycle'],
+                    $date,
+                    $time . ':00',
+                    $values['notes'] !== '' ? $values['notes'] : null,
+                    $id,
+                    (int) $_SESSION['user_id'],
+                ]);
+                header('Location: index.php');
+                exit;
+            } catch (PDOException $exception) {
+                error_log($exception->__toString());
+                $error = 'Perubahan gagal disimpan. Periksa kembali data dan batas harga, lalu coba lagi.';
+            }
         }
     }
 }

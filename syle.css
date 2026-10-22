@@ -10,6 +10,10 @@ body { font-family: 'Inter', sans-serif; background-color: var(--bg); color: var
 .auth-box h1 span { color: var(--primary); }
 .auth-box input { width: 100%; padding: 12px; margin-bottom: 15px; border: 1px solid var(--border); border-radius: var(--radius-sm); outline: none; font-family: inherit; }
 .auth-box button { width: 100%; justify-content: center; margin-top: 10px; }
+.auth-password-field { position: relative; margin-bottom: 15px; }
+.auth-password-field input { margin-bottom: 0; padding-right: 100px; }
+.auth-password-field .password-toggle { position: absolute; top: 50%; right: 8px; width: auto; margin: 0; padding: 6px 8px; transform: translateY(-50%); background: transparent; color: var(--primary); font-size: 12px; }
+.auth-password-field .password-toggle:hover { background: #f3f1ff; }
 .auth-toggle { margin-top: 15px; font-size: 14px; color: var(--primary); text-decoration: none; display: block; }
 .auth-toggle:hover { text-decoration: underline; }
 
