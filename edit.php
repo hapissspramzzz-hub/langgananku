@@ -33,9 +33,14 @@ if (!$subscription) {
     exit('Langganan tidak ditemukan.');
 }
 
+$storedPrice = (float) $subscription['price'];
+$formattedPrice = number_format($storedPrice, $storedPrice === floor($storedPrice) ? 0 : 2, ',', '.');
+if (str_contains($formattedPrice, ',')) {
+    $formattedPrice = rtrim(rtrim($formattedPrice, '0'), ',');
+}
 $values = [
     'name' => $subscription['name'],
-    'price' => (string) $subscription['price'],
+    'price' => $formattedPrice,
     'cycle' => $subscription['cycle'],
     'renewal_date' => $subscription['renewal_date'],
     'renewal_time' => $subscription['renewal_time'] ? substr($subscription['renewal_time'], 0, 5) : '09:00',
@@ -56,7 +61,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $values[$key] = trim($_POST[$key]);
         }
 
-        $price = filter_var($values['price'], FILTER_VALIDATE_FLOAT);
+        $priceInput = str_replace(',', '.', str_replace('.', '', $values['price']));
+        $price = filter_var($priceInput, FILTER_VALIDATE_FLOAT);
         $date = $values['renewal_date'];
         $time = $values['renewal_time'];
         $dateValid = preg_match('/^\d{4}-\d{2}-\d{2}$/', $date)
@@ -121,7 +127,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             <div class="form-row">
                 <div class="form-group">
                     <label for="price">Harga</label>
-                    <input id="price" name="price" type="number" min="0" step="0.01" value="<?= h($values['price']) ?>" required>
+                    <input id="price" name="price" type="text" inputmode="decimal" data-price-input value="<?= h($values['price']) ?>" placeholder="Contoh: 50.000" required>
                 </div>
                 <div class="form-group">
                     <label for="cycle">Siklus pembayaran</label>
@@ -153,5 +159,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         </form>
     </section>
 </main>
+<script src="format-harga.js"></script>
 </body>
 </html>
