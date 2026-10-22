@@ -58,7 +58,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             && (int) substr($time, 0, 2) <= 23
             && (int) substr($time, 3, 2) <= 59;
 
-        if ($error === '' && $priceExceedsDatabaseRange) {
+        if ($error === '' && $price !== false && !is_finite((float) $price)) {
+            $error = 'Harga harus berupa angka yang valid.';
+        } elseif ($error === '' && $priceExceedsDatabaseRange) {
             $error = 'Harga maksimal Rp 9.999.999.999,99.';
         } elseif ($error === '' && ($values['name'] === '' || mb_strlen($values['name']) > 120
             || !$priceFormatIsValid || $price === false || $price < 0

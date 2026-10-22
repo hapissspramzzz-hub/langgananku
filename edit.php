@@ -64,8 +64,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $priceFormatIsValid = preg_match('/^(?:\d+|\d{1,3}(?:\.\d{3})+)(?:,\d{1,2})?$/', $values['price']) === 1;
         $priceInput = str_replace(',', '.', str_replace('.', '', $values['price']));
         $price = filter_var($priceInput, FILTER_VALIDATE_FLOAT);
-        $priceIsWithinDatabaseRange = $price !== false && is_finite((float) $price)
-            && (float) $price <= 9999999999.99;
+        $priceExceedsDatabaseRange = $price !== false && is_finite((float) $price)
+            && (float) $price > 9999999999.99;
         $date = $values['renewal_date'];
         $time = $values['renewal_time'];
         $dateValid = preg_match('/^\d{4}-\d{2}-\d{2}$/', $date)
@@ -74,7 +74,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             && (int) substr($time, 0, 2) <= 23
             && (int) substr($time, 3, 2) <= 59;
 
-        if ($error === '' && !$priceIsWithinDatabaseRange) {
+        if ($error === '' && $price !== false && !is_finite((float) $price)) {
+            $error = 'Harga harus berupa angka yang valid.';
+        } elseif ($error === '' && $priceExceedsDatabaseRange) {
             $error = 'Harga maksimal Rp 9.999.999.999,99.';
         } elseif ($error === '' && ($values['name'] === '' || mb_strlen($values['name']) > 120
             || !$priceFormatIsValid || $price === false || $price < 0
