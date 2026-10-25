@@ -9,7 +9,7 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <script src="https://unpkg.com/@phosphor-icons/web"></script>
-    <link rel="stylesheet" href="syle.css">
+    <link rel="stylesheet" href="syle.css?v=<?= filemtime(__DIR__ . '/syle.css') ?>">
 </head>
 <body class="landing-page">
 <main class="landing-container">
@@ -26,7 +26,7 @@
         <div class="hero-copy">
             <span class="hero-badge"><i class="ph ph-sparkle"></i> Langganan rapi, pikiran lebih tenang</span>
             <h1>Langganan banyak,<br><span>nggak perlu</span><br>pusing ngaturnya.</h1>
-            <p>Catat semua layanan langgananmu di satu tempat. Pantau pengeluaran, cek jadwal perpanjangan, dan dapatkan pengingat sebelum waktunya.</p>
+            <p>Harga dan tanggal tagihan yang tersebar bikin sulit dipantau. Satukan data langganan, hitung perkiraan biaya, dan cek jadwal perpanjangan dalam satu dashboard.</p>
             <div class="hero-actions">
                 <a class="btn btn-primary" href="index.php?mode=register">Buat akun gratis <i class="ph ph-arrow-right"></i></a>
                 <a class="hero-login-link" href="index.php?mode=login">Sudah punya akun? Masuk</a>
@@ -49,9 +49,37 @@
     <section class="features-section" id="fitur">
         <div class="section-heading"><span class="eyebrow">SEMUA DALAM SATU TEMPAT</span><h2>Lebih teratur, tanpa ribet.</h2><p>Informasi penting soal langgananmu jadi gampang dilihat dan dikelola.</p></div>
         <div class="feature-grid">
-            <article class="feature-card"><span class="feature-icon feature-violet"><i class="ph ph-wallet"></i></span><h3>Pantau pengeluaran</h3><p>Lihat total biaya langganan bulanan dan perkiraan pengeluaran tahunan dalam satu ringkasan.</p></article>
-            <article class="feature-card"><span class="feature-icon feature-blue"><i class="ph ph-calendar-check"></i></span><h3>Ingat jadwal perpanjangan</h3><p>Catat tanggal perpanjangan dan aktifkan pengingat browser agar tidak terlewat.</p></article>
-            <article class="feature-card"><span class="feature-icon feature-green"><i class="ph ph-sliders-horizontal"></i></span><h3>Kelola dengan mudah</h3><p>Tambah, ubah, dan atur status langgananmu kapan saja dari dashboard pribadi.</p></article>
+            <article class="feature-card"><span class="feature-icon feature-violet"><i class="ph ph-wallet"></i></span><h3>Biaya langganan sulit dihitung?</h3><p>LanggananKu merangkum pengeluaran aktif menjadi estimasi bulanan dan tahunan, termasuk tagihan mingguan, bulanan, per 3 bulan, dan tahunan.</p></article>
+            <article class="feature-card"><span class="feature-icon feature-blue"><i class="ph ph-calendar-check"></i></span><h3>Takut lupa tanggal perpanjangan?</h3><p>Lihat tanggal dan hitung mundur perpanjangan. Pengingat browser tersedia saat dashboard terbuka dan notifikasi diizinkan.</p></article>
+            <article class="feature-card"><span class="feature-icon feature-green"><i class="ph ph-lock-key"></i></span><h3>Ingin data tetap tertata per akun?</h3><p>Setiap akun mengelola daftar langganannya sendiri, lengkap dengan harga, periode, jadwal, catatan, dan status aktif.</p></article>
+        </div>
+    </section>
+    <section class="problem-section">
+        <div class="section-heading"><span class="eyebrow">DARI MASALAH KE SOLUSI</span><h2>Bukan cuma mencatat. Jadi tahu apa yang perlu diperhatikan.</h2><p>Data yang rapi membantu kamu mengambil keputusan sebelum tagihan berikutnya datang.</p></div>
+        <div class="problem-grid">
+            <article class="problem-card">
+                <span class="problem-label"><i class="ph ph-warning-circle"></i> MASALAH</span>
+                <h3>Tagihan kecil terasa tidak kelihatan</h3>
+                <p>Beberapa biaya berulang dari layanan berbeda mudah luput saat diperiksa satu per satu.</p>
+                <div class="solution-copy"><span class="solution-label"><i class="ph ph-check-circle"></i> YANG DIBANTU LANGGANANKU</span><p>Lihat total estimasi biaya aktif per bulan dan per tahun dalam satu ringkasan.</p></div>
+            </article>
+            <article class="problem-card">
+                <span class="problem-label"><i class="ph ph-warning-circle"></i> MASALAH</span>
+                <h3>Jadwal perpanjangan sulit diingat</h3>
+                <p>Tanggal layanan yang berbeda-beda berisiko terlupakan sampai tagihan berikutnya muncul.</p>
+                <div class="solution-copy"><span class="solution-label"><i class="ph ph-check-circle"></i> YANG DIBANTU LANGGANANKU</span><p>Urutkan jadwal, lihat hitung mundur, dan gunakan pengingat browser saat dashboard terbuka.</p></div>
+            </article>
+            <article class="problem-card">
+                <span class="problem-label"><i class="ph ph-warning-circle"></i> MASALAH</span>
+                <h3>Catatan tersebar dan susah diperbarui</h3>
+                <p>Harga, periode pembayaran, dan status layanan bisa tersimpan di banyak tempat berbeda.</p>
+                <div class="solution-copy"><span class="solution-label"><i class="ph ph-check-circle"></i> YANG DIBANTU LANGGANANKU</span><p>Simpan dan perbarui rincian langganan di dashboard pribadi, dengan data terpisah per akun.</p></div>
+            </article>
+        </div>
+        <div class="data-highlights" aria-label="Ringkasan kemampuan LanggananKu">
+            <div><strong>4</strong><span>pilihan periode tagihan</span></div>
+            <div><strong>2</strong><span>estimasi biaya: bulanan &amp; tahunan</span></div>
+            <div><strong>1</strong><span>dashboard untuk semua catatan</span></div>
         </div>
     </section>
     <section class="steps-section" id="cara-kerja">
