@@ -158,6 +158,21 @@ body.landing-page { padding: 0; background: #fff; }
 .feature-green { background: #eaf8ef; color: #16864d; }
 .feature-card h3,.step-card h3 { margin-bottom: 8px; font-size: 15px; }
 .feature-card p,.step-card p { color: var(--text-muted); font-size: 12px; line-height: 1.8; }
+.problem-section { padding: 4px 0 80px; }
+.problem-section .section-heading h2 { max-width: 680px; margin-right: auto; margin-left: auto; }
+.problem-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 18px; }
+.problem-card { display: flex; flex-direction: column; padding: 23px; border: 1px solid #ececf3; border-radius: 15px; background: #fff; }
+.problem-label,.solution-label { display: inline-flex; align-items: center; gap: 6px; font-size: 9px; font-weight: 700; letter-spacing: .08em; }
+.problem-label { color: #a96918; }
+.problem-card h3 { margin: 14px 0 7px; font-size: 15px; }
+.problem-card > p,.solution-copy p { color: var(--text-muted); font-size: 11px; line-height: 1.8; }
+.solution-copy { margin-top: 20px; padding-top: 15px; border-top: 1px solid #f0f0f4; }
+.solution-label { color: var(--success); }
+.solution-copy p { margin-top: 7px; color: var(--text-main); }
+.data-highlights { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-top: 20px; padding: 20px 12px; border: 1px solid #ececf3; border-radius: 15px; background: #fafaff; text-align: center; }
+.data-highlights > div { display: grid; gap: 4px; }
+.data-highlights strong { color: var(--primary); font-size: 22px; }
+.data-highlights span { color: var(--text-muted); font-size: 10px; }
 .steps-section { padding: 18px 0 82px; }
 .steps-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 30px; }
 .step-card { display: flex; gap: 14px; }
@@ -192,6 +207,11 @@ body.landing-page { padding: 0; background: #fff; }
   .feature-grid,.steps-grid { grid-template-columns: 1fr; gap: 12px; }
   .feature-card { padding: 20px; }
   .feature-icon { margin-bottom: 13px; }
+  .problem-section { padding: 0 0 54px; }
+  .problem-grid { grid-template-columns: 1fr; gap: 12px; }
+  .problem-card { padding: 20px; }
+  .data-highlights { padding: 16px 8px; }
+  .data-highlights span { font-size: 9px; }
   .steps-section { padding: 0 0 54px; }
   .steps-grid { gap: 20px; }
   .landing-cta { align-items: flex-start; flex-direction: column; padding: 26px 22px; }
