@@ -76,6 +76,22 @@ function importTextDate($value)
     return $value;
 }
 
+function importNameFromValue($value)
+{
+    $name = trim((string) $value);
+    if (preg_match('/^(?:nama(?:\s+langganan)?|name|layanan|service)\s*[:=]\s*(.+)$/iu', $name, $matches)) {
+        $name = trim($matches[1]);
+    }
+
+    if (preg_match('/^(?:tanggal|date|jam|waktu|time|lokasi|location|tempat|di\s+mana|dimana|where|harga|price|biaya|siklus|cycle|periode|catatan|notes|keterangan|status|aktif)(?:\s*[:=]\s*.*|\s+\S.*)?$/iu', $name)
+        || preg_match('/^(?:\d{4}-\d{1,2}-\d{1,2}|\d{1,2}[\/.-]\d{1,2}[\/.-]\d{2,4})(?:[ T].*)?$/u', $name)
+        || preg_match('/^(?:jam\s*)?(?:[01]?\d|2[0-3])[:.][0-5]\d(?::[0-5]\d)?(?:\s*(?:am|pm))?$/iu', $name)) {
+        return '';
+    }
+
+    return $name;
+}
+
 function importTextRows($contents)
 {
     $contents = preg_replace('/^\xEF\xBB\xBF/', '', $contents);
@@ -105,7 +121,7 @@ function importTextRows($contents)
     if ($delimiter === null) {
         $rows = [];
         foreach ($lines as $line) {
-            $name = trim($line);
+            $name = importNameFromValue($line);
             if ($name !== '') {
                 $rows[] = ['raw' => ['name' => $name], 'extra' => [], 'line' => count($rows) + 1];
             }
@@ -487,10 +503,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $extraNotes = $record['extra'];
                 $line = $record['line'];
                 $name = isset($raw['name']) && (is_string($raw['name']) || is_numeric($raw['name']))
-                    ? trim((string) $raw['name'])
+                    ? importNameFromValue($raw['name'])
                     : '';
-                if ($name === '' || mb_strlen($name) > 120) {
-                    $error = "Nama langganan kosong atau terlalu panjang pada baris {$line}. Isi nama agar data dapat disimpan.";
+                if ($name === '') {
+                    continue;
+                }
+                if (mb_strlen($name) > 120) {
+                    $error = "Nama langganan terlalu panjang pada baris {$line}. Maksimal 120 karakter.";
                     break;
                 }
 
@@ -602,7 +621,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 </div>
             </form>
         <?php endif; ?>
-        <p class="page-description">Gunakan kolom Nama, Harga, Siklus, Tanggal Perpanjangan, Waktu Perpanjangan, Catatan, dan Aktif. File .txt satu nama per baris atau gunakan kolom yang dipisahkan koma, titik koma, tab, atau |. Kolom tambahan yang tidak dikenal akan disimpan di Catatan. Data yang kurang akan diminta untuk dilengkapi setelah impor.</p>
+        <p class="page-description">Gunakan kolom Nama, Harga, Siklus, Tanggal Perpanjangan, Waktu Perpanjangan, Catatan, dan Aktif. File .txt dapat berisi satu atau beberapa nama langganan, satu per baris; baris berlabel atau berisi tanggal/jam/lokasi tidak akan dijadikan nama. Untuk data berbentuk kolom, gunakan koma, titik koma, tab, atau |. Kolom tambahan yang tidak dikenal akan disimpan di Catatan. Data yang kurang akan diminta untuk dilengkapi setelah impor.</p>
         <?php if (!$hasPendingImport): ?>
         <form method="post" enctype="multipart/form-data">
             <input type="hidden" name="csrf_token" value="<?= h($_SESSION['csrf_token']) ?>">
