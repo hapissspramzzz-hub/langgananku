@@ -105,7 +105,9 @@ foreach ($subscriptions as $subscription) {
         $accountName = htmlspecialchars($subscription['account_name'], ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
         $renewalAt = new DateTimeImmutable($subscription['renewal_at']);
         $renewalText = $renewalAt->format('d-m-Y H:i');
-        $priceText = 'Rp ' . number_format((float) $subscription['price'], 0, ',', '.');
+        $priceText = $subscription['price'] === null
+            ? 'belum diatur'
+            : 'Rp ' . number_format((float) $subscription['price'], 0, ',', '.');
         $cycle = $cycleNames[$subscription['cycle']] ?? $subscription['cycle'];
         $subject = 'Langganan ' . $subscription['name'] . ' Anda tersisa 24 jam lagi';
         $plainText = "Halo {$subscription['account_name']},\n\n"

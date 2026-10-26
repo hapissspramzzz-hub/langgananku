@@ -13,6 +13,12 @@ document.addEventListener('DOMContentLoaded', () => {
     const deliveredReminders = new Set();
     const failedNotifications = new Set();
     const notificationButton = document.getElementById('enableNotifications');
+    const incompleteModal = document.getElementById('incompleteModal');
+    const incompleteSubscriptionList = document.getElementById('incompleteSubscriptionList');
+    const importAddModal = document.getElementById('importAddModal');
+    const importAddForm = document.getElementById('importAddForm');
+    const pendingImportItems = Array.isArray(window.pendingImportItems) ? window.pendingImportItems : [];
+    let incompletePromptShown = false;
     const money = value => new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(Number(value) || 0);
     const esc = value => String(value ?? '').replace(/[&<>"']/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[ch]));
     const monthly = (price, cycle) => ({ weekly: price * 52 / 12, monthly: price, quarterly: price / 3, yearly: price / 12 }[cycle] ?? price);
@@ -42,8 +48,9 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     function remind(item, label, expiry) {
         const key = `langgananku:${item.id}:${item.renewal_date}:${item.renewal_time || '23:59'}:${label}`;
+        const priceText = item.price === null || item.price === '' ? 'Harga belum diatur' : money(item.price);
         const message = label === '1 hari'
-            ? `Langganan ${item.name} Anda sudah tersisa 24 jam lagi, segera bayar sebelum basi!!! Harga: ${money(item.price)} per ${cyclePeriods[item.cycle] || item.cycle}.`
+            ? `Langganan ${item.name} Anda tersisa 24 jam lagi. Harga: ${priceText} per ${cyclePeriods[item.cycle] || item.cycle}.`
             : `${item.name} akan berakhir dalam ${label} (${expiry.toLocaleString('id-ID')}).`;
         if (!wasDelivered(`${key}:toast`)) {
             toast(message, 'warning');
@@ -122,26 +129,119 @@ document.addEventListener('DOMContentLoaded', () => {
             const stamp = Number(node.dataset.expiry); if (stamp) node.textContent = remainingText(new Date(stamp));
         });
     }
+    function showIncompletePrompt(items) {
+        if (!incompleteModal || incompletePromptShown || pendingImportItems.length) return;
+        const incompleteItems = items.filter(item => item.price === null || item.price === ''
+            || !item.renewal_date);
+        if (!incompleteItems.length) return;
+
+        incompleteSubscriptionList.innerHTML = incompleteItems.map(item => {
+            const missing = [];
+            if (item.price === null || item.price === '') missing.push('harga');
+            if (!item.renewal_date) missing.push('tanggal perpanjangan');
+            return `<a class="incomplete-subscription-link" href="edit.php?id=${encodeURIComponent(item.id)}"><span><strong>${esc(item.name)}</strong><small>Belum diisi: ${esc(missing.join(' dan '))}</small></span><span class="incomplete-edit-label">Lengkapi <i class="ph ph-arrow-right"></i></span></a>`;
+        }).join('');
+        incompleteModal.classList.add('active');
+        incompletePromptShown = true;
+        document.getElementById('closeIncompleteModal').focus();
+    }
+    function closeIncompletePrompt() {
+        incompleteModal?.classList.remove('active');
+    }
+    document.getElementById('closeIncompleteModal')?.addEventListener('click', closeIncompletePrompt);
+    document.getElementById('dismissIncompleteModal')?.addEventListener('click', closeIncompletePrompt);
+    incompleteModal?.addEventListener('click', event => {
+        if (event.target === incompleteModal) closeIncompletePrompt();
+    });
+    document.addEventListener('keydown', event => {
+        if (event.key === 'Escape' && incompleteModal?.classList.contains('active')) {
+            closeIncompletePrompt();
+        }
+        if (event.key === 'Escape' && importAddModal?.classList.contains('active')) {
+            closeImportAddModal();
+        }
+    });
+    function closeImportAddModal() {
+        importAddModal?.classList.remove('active');
+    }
+    function fillImportAddForm(index) {
+        const item = pendingImportItems[index];
+        if (!item || !importAddForm) return;
+        importAddForm.elements.item_index.value = index;
+        importAddForm.elements.name.value = item.name ?? '';
+        importAddForm.elements.price.value = item.price === null || item.price === ''
+            ? ''
+            : new Intl.NumberFormat('id-ID', { maximumFractionDigits: 2 }).format(Number(item.price));
+        importAddForm.elements.cycle.value = item.cycle || 'monthly';
+        importAddForm.elements.renewal_date.value = item.renewal_date || '';
+        importAddForm.elements.renewal_time.value = item.renewal_time ? String(item.renewal_time).slice(0, 5) : '';
+        importAddForm.elements.notes.value = item.notes || '';
+        importAddForm.elements.active.value = String(Number(item.active) === 0 ? 0 : 1);
+        document.getElementById('importAddModalDescription').textContent =
+            `Data ${index + 1} dari ${pendingImportItems.length}. Kolom yang dikenali sudah diisi dari file; periksa atau lengkapi sebelum menyimpan.`;
+        document.getElementById('importAddError').hidden = true;
+        importAddModal.classList.add('active');
+        document.getElementById('importName').focus();
+    }
+    document.getElementById('closeImportAddModal')?.addEventListener('click', closeImportAddModal);
+    document.getElementById('dismissImportAddModal')?.addEventListener('click', closeImportAddModal);
+    importAddModal?.addEventListener('click', event => {
+        if (event.target === importAddModal) closeImportAddModal();
+    });
+    if (pendingImportItems.length && window.pendingImportIndex < pendingImportItems.length) {
+        fillImportAddForm(window.pendingImportIndex);
+    }
+    importAddForm?.addEventListener('submit', async event => {
+        event.preventDefault();
+        const submitButton = document.getElementById('saveImportAdd');
+        const errorBox = document.getElementById('importAddError');
+        submitButton.disabled = true;
+        errorBox.hidden = true;
+        const formData = new FormData(importAddForm);
+        formData.set('action', 'save_pending_import');
+        try {
+            const response = await fetch('impor.php', { method: 'POST', body: formData });
+            const result = await response.json();
+            if (!response.ok || result.error) throw new Error(result.error || 'Langganan gagal disimpan.');
+            if (result.done) {
+                window.location.reload();
+                return;
+            }
+            fillImportAddForm(result.nextIndex);
+        } catch (error) {
+            errorBox.textContent = error.message || 'Langganan gagal disimpan. Coba lagi.';
+            errorBox.hidden = false;
+        } finally {
+            submitButton.disabled = false;
+        }
+    });
     function render(items) {
         let total = 0, activeCount = 0;
-        items.forEach(item => { if (Number(item.active) === 1) { total += monthly(Number(item.price), item.cycle); activeCount++; } });
+        items.forEach(item => {
+            if (Number(item.active) === 1) {
+                if (item.price !== null && item.price !== '') total += monthly(Number(item.price), item.cycle);
+                activeCount++;
+            }
+        });
         document.getElementById('totalMonthly').textContent = money(total);
         document.getElementById('totalYearly').textContent = money(total * 12);
         document.getElementById('activeCount').textContent = activeCount;
+        showIncompletePrompt(items);
         if (!items.length) {
             list.innerHTML = '<div class="empty-state">Belum ada langganan. Tekan <strong>Tambah langganan</strong> untuk mulai mencatat.</div>';
             return;
         }
         list.innerHTML = items.map(item => {
             const expiry = expiryOf(item), active = Number(item.active) === 1;
+            const hasPrice = item.price !== null && item.price !== '';
             const when = expiry ? `${expiry.toLocaleDateString('id-ID')} pukul ${expiry.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })}` : 'Tanggal belum diatur';
             const left = expiry ? expiry.getTime() - Date.now() : Infinity;
             const tone = !expiry ? 'timer-normal' : left <= 86400000 ? 'timer-danger' : left <= 604800000 ? 'timer-warning' : 'timer-normal';
             return `<article class="list-item ${active ? '' : 'is-inactive'}">
               <div class="item-main"><div class="item-logo">${esc(item.name.slice(0, 1))}</div><div><div class="item-name">${esc(item.name)}</div><div class="item-meta">${esc(cycleNames[item.cycle] || item.cycle)}${item.notes ? `  -  ${esc(item.notes)}` : ''}</div></div></div>
               <div><span class="status-badge ${active ? '' : 'status-paused'}">${active ? 'Aktif' : 'Dijeda'}</span></div>
-              <div><span class="timer-badge ${tone}" ${expiry ? `data-expiry="${expiry.getTime()}"` : ''}>${expiry ? esc(remainingText(expiry)) : 'Atur tanggal renewal'}</span><div class="item-meta">${esc(when)}</div></div>
-              <div class="item-price">${money(item.price)}<div class="item-meta">per ${esc((cycleNames[item.cycle] || item.cycle).toLowerCase())}</div></div>
+              <div><span class="timer-badge ${tone}" ${expiry ? `data-expiry="${expiry.getTime()}"` : ''}>${expiry ? esc(remainingText(expiry)) : 'Lengkapi tanggal'}</span><div class="item-meta">${esc(when)}</div></div>
+              <div class="item-price">${hasPrice ? money(item.price) : '<span class="incomplete-value">Lengkapi harga</span>'}${hasPrice ? `<div class="item-meta">per ${esc((cycleNames[item.cycle] || item.cycle).toLowerCase())}</div>` : ''}</div>
               <div class="item-actions"><a class="btn-icon" href="edit.php?id=${encodeURIComponent(item.id)}" title="Edit langganan" aria-label="Edit langganan"><i class="ph ph-pencil-simple"></i></a><a class="btn-icon btn-delete" href="hapus.php?id=${encodeURIComponent(item.id)}" title="Hapus langganan" aria-label="Hapus langganan"><i class="ph ph-trash"></i><span class="item-action-label">Hapus</span></a></div>
             </article>`;
         }).join('');

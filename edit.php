@@ -33,9 +33,11 @@ if (!$subscription) {
     exit('Langganan tidak ditemukan.');
 }
 
-$storedPrice = (float) $subscription['price'];
-$formattedPrice = number_format($storedPrice, $storedPrice === floor($storedPrice) ? 0 : 2, ',', '.');
-if (str_contains($formattedPrice, ',')) {
+$storedPrice = $subscription['price'] === null ? null : (float) $subscription['price'];
+$formattedPrice = $storedPrice === null
+    ? ''
+    : number_format($storedPrice, $storedPrice === floor($storedPrice) ? 0 : 2, ',', '.');
+if ($formattedPrice !== '' && str_contains($formattedPrice, ',')) {
     $formattedPrice = rtrim(rtrim($formattedPrice, '0'), ',');
 }
 $values = [
@@ -43,7 +45,7 @@ $values = [
     'price' => $formattedPrice,
     'cycle' => $subscription['cycle'],
     'renewal_date' => $subscription['renewal_date'],
-    'renewal_time' => $subscription['renewal_time'] ? substr($subscription['renewal_time'], 0, 5) : '09:00',
+    'renewal_time' => $subscription['renewal_time'] ? substr($subscription['renewal_time'], 0, 5) : '',
     'notes' => $subscription['notes'] ?? '',
 ];
 $error = '';
@@ -61,29 +63,31 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $values[$key] = trim($_POST[$key]);
         }
 
-        $priceFormatIsValid = preg_match('/^(?:\d+|\d{1,3}(?:\.\d{3})+)(?:,\d{1,2})?$/', $values['price']) === 1;
+        $priceIsEmpty = $values['price'] === '';
+        $priceFormatIsValid = $priceIsEmpty
+            || preg_match('/^(?:\d+|\d{1,3}(?:\.\d{3})+)(?:,\d{1,2})?$/', $values['price']) === 1;
         $priceInput = str_replace(',', '.', str_replace('.', '', $values['price']));
-        $price = filter_var($priceInput, FILTER_VALIDATE_FLOAT);
+        $price = $priceIsEmpty ? null : filter_var($priceInput, FILTER_VALIDATE_FLOAT);
         $priceExceedsDatabaseRange = $price !== false && is_finite((float) $price)
             && (float) $price > 9999999999.99;
         $date = $values['renewal_date'];
         $time = $values['renewal_time'];
-        $dateValid = preg_match('/^\d{4}-\d{2}-\d{2}$/', $date)
-            && checkdate((int) substr($date, 5, 2), (int) substr($date, 8, 2), (int) substr($date, 0, 4));
-        $timeValid = preg_match('/^\d{2}:\d{2}$/', $time)
+        $dateValid = $date === '' || (preg_match('/^\d{4}-\d{2}-\d{2}$/', $date)
+            && checkdate((int) substr($date, 5, 2), (int) substr($date, 8, 2), (int) substr($date, 0, 4)));
+        $timeValid = $time === '' || (preg_match('/^\d{2}:\d{2}$/', $time)
             && (int) substr($time, 0, 2) <= 23
-            && (int) substr($time, 3, 2) <= 59;
+            && (int) substr($time, 3, 2) <= 59);
 
-        if ($error === '' && $price !== false && !is_finite((float) $price)) {
+        if ($error === '' && !$priceIsEmpty && $price !== false && !is_finite((float) $price)) {
             $error = 'Harga harus berupa angka yang valid.';
         } elseif ($error === '' && $priceExceedsDatabaseRange) {
             $error = 'Harga maksimal Rp 9.999.999.999,99.';
         } elseif ($error === '' && ($values['name'] === '' || mb_strlen($values['name']) > 120
-            || !$priceFormatIsValid || $price === false || $price < 0
+            || !$priceFormatIsValid || (!$priceIsEmpty && ($price === false || $price < 0))
             || !isset($cycles[$values['cycle']])
             || !$dateValid || !$timeValid
             || mb_strlen($values['notes']) > 500)) {
-            $error = 'Periksa kembali nama, harga, siklus, tanggal, waktu, dan catatan.';
+            $error = 'Periksa kembali nama, harga, tanggal perpanjangan, waktu, dan catatan.';
         } elseif ($error === '') {
             $stmt = $pdo->prepare(
                 'UPDATE user_subscriptions
@@ -93,10 +97,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             try {
                 $stmt->execute([
                     $values['name'],
-                    $price,
+                    $price === false ? null : $price,
                     $values['cycle'],
-                    $date,
-                    $time . ':00',
+                    $date !== '' ? $date : null,
+                    $date !== '' && $time !== '' ? $time . ':00' : null,
                     $values['notes'] !== '' ? $values['notes'] : null,
                     $id,
                     (int) $_SESSION['user_id'],
@@ -127,7 +131,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <section class="page-card">
         <a class="brand" href="index.php">Langganan<span>Ku</span></a>
         <h1>Edit langganan</h1>
-        <p class="page-description">Ubah data langganan, lalu simpan perubahan.</p>
+        <p class="page-description">Lengkapi data langganan. Nama wajib diisi; harga dan jadwal perpanjangan boleh dikosongkan.</p>
         <?php if ($error !== ''): ?><div class="error-msg" role="alert"><?= h($error) ?></div><?php endif; ?>
         <form method="post">
             <input type="hidden" name="id" value="<?= h($id) ?>">
@@ -138,8 +142,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             </div>
             <div class="form-row">
                 <div class="form-group">
-                    <label for="price">Harga</label>
-                    <input id="price" name="price" type="text" inputmode="decimal" data-price-input value="<?= h($values['price']) ?>" placeholder="Contoh: 50.000" required>
+                    <label for="price">Harga <span>(opsional)</span></label>
+                    <input id="price" name="price" type="text" inputmode="decimal" data-price-input value="<?= h($values['price']) ?>" placeholder="Contoh: 50.000">
                 </div>
                 <div class="form-group">
                     <label for="cycle">Siklus pembayaran</label>
@@ -152,11 +156,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             </div>
             <div class="form-row">
                 <div class="form-group">
-                    <label for="renewal_date">Tanggal perpanjangan</label>
-                    <input id="renewal_date" name="renewal_date" type="date" value="<?= h($values['renewal_date']) ?>" required>
+                    <label for="renewal_date">Tanggal perpanjangan <span>(opsional)</span></label>
+                    <input id="renewal_date" name="renewal_date" type="date" value="<?= h($values['renewal_date']) ?>">
                 </div>
                 <div class="form-group">
-                    <label for="renewal_time">Waktu perpanjangan</label>
+                    <label for="renewal_time">Waktu perpanjangan <span>(opsional)</span></label>
                     <input id="renewal_time" name="renewal_time" type="time" value="<?= h($values['renewal_time']) ?>" required>
                 </div>
             </div>
