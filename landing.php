@@ -29,7 +29,7 @@
             <p>Harga dan tanggal tagihan yang tersebar bikin sulit dipantau. Satukan data langganan, hitung perkiraan biaya, dan cek jadwal perpanjangan dalam satu dashboard.</p>
             <div class="hero-actions">
                 <a class="btn btn-primary" href="index.php?mode=register">Buat akun gratis <i class="ph ph-arrow-right"></i></a>
-                <a class="hero-login-link" href="index.php?mode=login">Sudah punya akun? Masuk</a>
+                <a class="btn btn-secondary hero-login-link" href="index.php?mode=login">Sudah punya akun? Masuk</a>
             </div>
             <div class="hero-points"><span><i class="ph ph-check-circle"></i> Mudah digunakan</span><span><i class="ph ph-check-circle"></i> Data tersimpan pribadi</span></div>
         </div>
